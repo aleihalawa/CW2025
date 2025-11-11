@@ -4,6 +4,9 @@ import com.comp2042.model.logic.BrickRotator;
 import com.comp2042.model.logic.bricks.Brick;
 import com.comp2042.model.logic.bricks.BrickGenerator;
 import com.comp2042.model.logic.bricks.RandomBrickGenerator;
+import com.comp2042.model.logic.CollisionService;
+import com.comp2042.model.logic.LineClearService;
+
 
 import java.awt.*;
 
@@ -16,6 +19,9 @@ public class SimpleBoard implements Board {
     private int[][] currentGameMatrix;
     private Point currentOffset;
     private final Score score;
+    private final CollisionService collisionService = new CollisionService();
+    private final LineClearService lineClearService = new LineClearService();
+
 
     public SimpleBoard(int width, int height) {
         this.width = width;
@@ -31,7 +37,8 @@ public class SimpleBoard implements Board {
         int[][] currentMatrix = MatrixOperations.copy(currentGameMatrix);
         Point p = new Point(currentOffset);
         p.translate(0, 1);
-        boolean conflict = MatrixOperations.intersect(currentMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
+        boolean conflict = collisionService.intersect(
+                currentMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
         if (conflict) {
             return false;
         } else {
@@ -46,7 +53,8 @@ public class SimpleBoard implements Board {
         int[][] currentMatrix = MatrixOperations.copy(currentGameMatrix);
         Point p = new Point(currentOffset);
         p.translate(-1, 0);
-        boolean conflict = MatrixOperations.intersect(currentMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
+        boolean conflict = collisionService.intersect(
+                currentMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
         if (conflict) {
             return false;
         } else {
@@ -60,7 +68,8 @@ public class SimpleBoard implements Board {
         int[][] currentMatrix = MatrixOperations.copy(currentGameMatrix);
         Point p = new Point(currentOffset);
         p.translate(1, 0);
-        boolean conflict = MatrixOperations.intersect(currentMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
+        boolean conflict = collisionService.intersect(
+                currentMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
         if (conflict) {
             return false;
         } else {
@@ -73,7 +82,8 @@ public class SimpleBoard implements Board {
     public boolean rotateLeftBrick() {
         int[][] currentMatrix = MatrixOperations.copy(currentGameMatrix);
         NextShapeInfo nextShape = brickRotator.getNextShape();
-        boolean conflict = MatrixOperations.intersect(currentMatrix, nextShape.getShape(), (int) currentOffset.getX(), (int) currentOffset.getY());
+        boolean conflict = collisionService.intersect(
+                currentMatrix, nextShape.getShape(), (int) currentOffset.getX(), (int) currentOffset.getY());
         if (conflict) {
             return false;
         } else {
@@ -87,7 +97,9 @@ public class SimpleBoard implements Board {
         Brick currentBrick = brickGenerator.getBrick();
         brickRotator.setBrick(currentBrick);
         currentOffset = new Point(4, 10);
-        return MatrixOperations.intersect(currentGameMatrix, brickRotator.getCurrentShape(), (int) currentOffset.getX(), (int) currentOffset.getY());
+        return collisionService.intersect(
+                currentGameMatrix, brickRotator.getCurrentShape(),
+                (int) currentOffset.getX(), (int) currentOffset.getY());
     }
 
     @Override
@@ -107,11 +119,11 @@ public class SimpleBoard implements Board {
 
     @Override
     public ClearRow clearRows() {
-        ClearRow clearRow = MatrixOperations.checkRemoving(currentGameMatrix);
+        ClearRow clearRow = lineClearService.clearFullLines(currentGameMatrix);
         currentGameMatrix = clearRow.getNewMatrix();
         return clearRow;
-
     }
+
 
     @Override
     public Score getScore() {

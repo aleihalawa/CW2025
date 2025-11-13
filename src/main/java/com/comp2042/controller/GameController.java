@@ -7,7 +7,7 @@ import com.comp2042.model.*;
 
 public class GameController implements InputEventListener {
 
-    private Board board = new SimpleBoard(25, 10);
+    private final Board board = new SimpleBoard(25, 10);
 
     private final GuiController viewGuiController;
 

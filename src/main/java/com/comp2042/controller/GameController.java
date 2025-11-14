@@ -22,26 +22,18 @@ public class GameController implements InputEventListener {
     @Override
     public DownData onDownEvent(MoveEvent event) {
         boolean canMove = board.moveBrickDown();
-        ClearRow clearRow = null;
+        ClearRow clearRow;
+
         if (!canMove) {
-            board.mergeBrickToBackground();
-            clearRow = board.clearRows();
-            if (clearRow.getLinesRemoved() > 0) {
-                board.getScore().add(clearRow.getScoreBonus());
-            }
-            if (board.createNewBrick()) {
-                viewGuiController.gameOver();
-            }
-
-            viewGuiController.refreshGameBackground(board.getBoardMatrix());
-
+            clearRow = lockPieceAndHandleNewBrick();
         } else {
-            if (event.getEventSource() == EventSource.USER) {
-                board.getScore().add(1);
-            }
+            rewardManualDrop(event);
+            clearRow = null;
         }
+
         return new DownData(clearRow, board.getViewData());
     }
+
 
     @Override
     public ViewData onLeftEvent(MoveEvent event) {
@@ -66,5 +58,43 @@ public class GameController implements InputEventListener {
     public void createNewGame() {
         board.newGame();
         viewGuiController.refreshGameBackground(board.getBoardMatrix());
+    }
+    /**
+     * Handles the situation when a falling piece can no longer move down:
+     * - merges it into the background
+     * - clears any full rows
+     * - applies score for cleared lines
+     * - spawns a new brick or triggers game over
+     * - refreshes the background view
+     */
+    private ClearRow lockPieceAndHandleNewBrick() {
+        board.mergeBrickToBackground();
+        ClearRow clearRow = board.clearRows();
+        applyLineClearScore(clearRow);
+
+        if (board.createNewBrick()) {
+            viewGuiController.gameOver();
+        }
+
+        viewGuiController.refreshGameBackground(board.getBoardMatrix());
+        return clearRow;
+    }
+
+    /**
+     * Applies score bonus based on how many lines have been removed.
+     */
+    private void applyLineClearScore(ClearRow clearRow) {
+        if (clearRow != null && clearRow.getLinesRemoved() > 0) {
+            board.getScore().add(clearRow.getScoreBonus());
+        }
+    }
+
+    /**
+     * Rewards the player for actively pressing down (soft drop).
+     */
+    private void rewardManualDrop(MoveEvent event) {
+        if (event.getEventSource() == EventSource.USER) {
+            board.getScore().add(1);
+        }
     }
 }

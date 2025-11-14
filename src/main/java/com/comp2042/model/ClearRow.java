@@ -1,5 +1,8 @@
 package com.comp2042.model;
-
+/**
+ * Immutable result of a line clear operation:
+ * number of lines removed, new board matrix, and score bonus.
+ */
 public final class ClearRow {
 
     private final int linesRemoved;

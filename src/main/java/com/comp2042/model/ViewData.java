@@ -1,5 +1,8 @@
 package com.comp2042.model;
-
+/**
+ * Immutable snapshot of the data the view needs to render
+ * the current falling brick and the next brick preview.
+ */
 public final class ViewData {
 
     private final int[][] brickData;

@@ -1,5 +1,7 @@
 package com.comp2042.model;
-
+/**
+ * Immutable description of the next rotation state for the current brick.
+ */
 public final class NextShapeInfo {
 
     private final int[][] shape;

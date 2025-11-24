@@ -77,6 +77,12 @@ public class GuiController implements Initializable {
         brickPanel.setManaged(false);
         brickPanel.toFront();
         
+        // Disable layout management for overlays to prevent layout shifts
+        groupNotification.setManaged(false);
+        groupNotification.toFront();
+        gameOverPanel.setManaged(false);
+        gameOverPanel.toFront();
+        
         Font.loadFont(getClass().getClassLoader().getResource("digital.ttf").toExternalForm(), 38);
         gamePanel.setFocusTraversable(true);
         gamePanel.requestFocus();
@@ -269,7 +275,23 @@ public class GuiController implements Initializable {
 
     public void gameOver() {
         timeLine.stop();
+        
+        // 1. Make visible and bring to front
         gameOverPanel.setVisible(true);
+        gameOverPanel.toFront();
+        
+        // 2. Force a size (Critical because it is unmanaged)
+        // The panel needs explicit dimensions to render correctly
+        double panelWidth = 300;
+        double panelHeight = 150;
+        gameOverPanel.setPrefSize(panelWidth, panelHeight);
+        gameOverPanel.resize(panelWidth, panelHeight);
+        
+        // 3. Center manually: (WindowWidth - PanelWidth) / 2
+        // Window is approx 500x700
+        gameOverPanel.setLayoutX((500 - panelWidth) / 2);
+        gameOverPanel.setLayoutY((700 - panelHeight) / 2);
+        
         isGameOver.setValue(Boolean.TRUE);
         // Hide the falling brick when game is over to prevent glitch
         brickPanel.setVisible(false);

@@ -22,7 +22,7 @@ public class SimpleBoard implements Board {
     private final CollisionService collisionService = new CollisionService();
     private final LineClearService lineClearService = new LineClearService();
     private static final int SPAWN_X = 4;
-    private static final int SPAWN_Y = 10;
+    private static final int SPAWN_Y = 0;
 
     public SimpleBoard(int width, int height) {
         this.width = width;

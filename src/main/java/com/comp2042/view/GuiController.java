@@ -19,6 +19,8 @@ import javafx.scene.Group;
 import javafx.scene.effect.Reflection;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.control.Label;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -37,6 +39,9 @@ public class GuiController implements Initializable {
     private GridPane gamePanel;
 
     @FXML
+    private BorderPane gameBoard;
+
+    @FXML
     private Group groupNotification;
 
     @FXML
@@ -44,6 +49,15 @@ public class GuiController implements Initializable {
 
     @FXML
     private GameOverPanel gameOverPanel;
+
+    @FXML
+    private Label scoreLabel;
+
+    @FXML
+    private Label levelLabel;
+
+    @FXML
+    private Label linesLabel;
 
     private Rectangle[][] displayMatrix;
 
@@ -59,6 +73,16 @@ public class GuiController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // Critical: Disable layout management for brickPanel so manual positioning works
+        brickPanel.setManaged(false);
+        brickPanel.toFront();
+        
+        // Disable layout management for overlays to prevent layout shifts
+        groupNotification.setManaged(false);
+        groupNotification.toFront();
+        gameOverPanel.setManaged(false);
+        gameOverPanel.toFront();
+        
         Font.loadFont(getClass().getClassLoader().getResource("digital.ttf").toExternalForm(), 38);
         gamePanel.setFocusTraversable(true);
         gamePanel.requestFocus();
@@ -116,8 +140,27 @@ public class GuiController implements Initializable {
                 brickPanel.add(rectangle, j, i);
             }
         }
-        brickPanel.setLayoutX(gamePanel.getLayoutX() + brick.getxPosition() * brickPanel.getVgap() + brick.getxPosition() * BRICK_SIZE);
-        brickPanel.setLayoutY(-42 + gamePanel.getLayoutY() + brick.getyPosition() * brickPanel.getHgap() + brick.getyPosition() * BRICK_SIZE);
+        // Use localToScene to dynamically align with gamePanel grid
+        // 1. Get the exact screen position of the Board Grid (gamePanel)
+        if (gamePanel.getScene() != null && brickPanel.getParent() != null) {
+            javafx.geometry.Point2D boardPos = gamePanel.localToScene(0, 0);
+            
+            // 2. Get the screen position of brickPanel's parent container
+            javafx.geometry.Point2D parentPos = brickPanel.getParent().localToScene(0, 0);
+            
+            // 3. Convert board position to brickPanel's parent coordinate system
+            double boardOffsetX = boardPos.getX() - parentPos.getX();
+            double boardOffsetY = boardPos.getY() - parentPos.getY();
+            
+            // 4. Calculate cell dimensions
+            double cellWidth = BRICK_SIZE + 1; // 20px + 1px gap
+            double cellHeight = BRICK_SIZE + 1;
+            
+            // 5. Position brickPanel to align with gamePanel grid
+            brickPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
+            brickPanel.setLayoutY(boardOffsetY + ((brick.getyPosition() - 2) * cellHeight));
+        }
+        // If scene not attached yet, refreshBrick will handle positioning on first update
 
 
         timeLine = new Timeline(new KeyFrame(
@@ -165,8 +208,26 @@ public class GuiController implements Initializable {
 
     private void refreshBrick(ViewData brick) {
         if (isPause.getValue() == Boolean.FALSE) {
-            brickPanel.setLayoutX(gamePanel.getLayoutX() + brick.getxPosition() * brickPanel.getVgap() + brick.getxPosition() * BRICK_SIZE);
-            brickPanel.setLayoutY(-42 + gamePanel.getLayoutY() + brick.getyPosition() * brickPanel.getHgap() + brick.getyPosition() * BRICK_SIZE);
+            // 1. Get the exact screen position of the Board Grid (gamePanel)
+            if (gamePanel.getScene() != null && brickPanel.getParent() != null) {
+                javafx.geometry.Point2D boardPos = gamePanel.localToScene(0, 0);
+                
+                // 2. Get the screen position of brickPanel's parent container
+                javafx.geometry.Point2D parentPos = brickPanel.getParent().localToScene(0, 0);
+                
+                // 3. Convert board position to brickPanel's parent coordinate system
+                double boardOffsetX = boardPos.getX() - parentPos.getX();
+                double boardOffsetY = boardPos.getY() - parentPos.getY();
+                
+                // 4. Calculate cell dimensions
+                double cellWidth = BRICK_SIZE + 1; // 20px + 1px gap
+                double cellHeight = BRICK_SIZE + 1;
+                
+                // 5. Position brickPanel to align with gamePanel grid
+                brickPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
+                brickPanel.setLayoutY(boardOffsetY + ((brick.getyPosition() - 2) * cellHeight));
+            }
+            
             for (int i = 0; i < brick.getBrickData().length; i++) {
                 for (int j = 0; j < brick.getBrickData()[i].length; j++) {
                     setRectangleData(brick.getBrickData()[i][j], rectangles[i][j]);
@@ -207,17 +268,39 @@ public class GuiController implements Initializable {
     }
 
     public void bindScore(IntegerProperty integerProperty) {
+        if (scoreLabel != null && integerProperty != null) {
+            scoreLabel.textProperty().bind(integerProperty.asString());
+        }
     }
 
     public void gameOver() {
         timeLine.stop();
+        
+        // 1. Make visible and bring to front
         gameOverPanel.setVisible(true);
+        gameOverPanel.toFront();
+        
+        // 2. Force a size (Critical because it is unmanaged)
+        // The panel needs explicit dimensions to render correctly
+        double panelWidth = 300;
+        double panelHeight = 150;
+        gameOverPanel.setPrefSize(panelWidth, panelHeight);
+        gameOverPanel.resize(panelWidth, panelHeight);
+        
+        // 3. Center manually: (WindowWidth - PanelWidth) / 2
+        // Window is approx 500x700
+        gameOverPanel.setLayoutX((500 - panelWidth) / 2);
+        gameOverPanel.setLayoutY((700 - panelHeight) / 2);
+        
         isGameOver.setValue(Boolean.TRUE);
+        // Hide the falling brick when game is over to prevent glitch
+        brickPanel.setVisible(false);
     }
 
     public void newGame(ActionEvent actionEvent) {
         timeLine.stop();
         gameOverPanel.setVisible(false);
+        brickPanel.setVisible(true); // Make brick panel visible again for new game
         eventListener.createNewGame();
         gamePanel.requestFocus();
         timeLine.play();

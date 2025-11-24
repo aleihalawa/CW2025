@@ -5,22 +5,53 @@
 <?import javafx.scene.Group?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Text?>
+<?import javafx.scene.shape.Rectangle?>
 <?import java.net.URL?>
-<Pane fx:controller="com.comp2042.view.GuiController"
-      xmlns:fx="http://javafx.com/fxml">
-    <GridPane fx:id="brickPanel" vgap="1" hgap="1"/>
-    <BorderPane styleClass="gameBoard" fx:id="gameBoard">
-        <center>
-            <GridPane fx:id="gamePanel" hgap="1" vgap="1" layoutY="30" layoutX="40"/>
-        </center>
-    </BorderPane>
-
-    <Group fx:id="groupNotification" layoutX="14" layoutY="203">
-        <VBox alignment="CENTER">
-            <GameOverPanel fx:id="gameOverPanel"/>
+<HBox fx:controller="com.comp2042.view.GuiController"
+      xmlns:fx="http://javafx.com/fxml" spacing="20" alignment="CENTER" style="-fx-background-color: #2a2a2a; -fx-padding: 20;">
+    
+    <!-- Left Panel: Score, Level, Lines -->
+    <VBox spacing="15" alignment="TOP_CENTER" prefWidth="150">
+        <VBox spacing="5" alignment="CENTER" style="-fx-background-color: #000000; -fx-border-color: #ffffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
+            <Label text="SCORE" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+            <Label fx:id="scoreLabel" text="0" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
         </VBox>
-    </Group>
+        <VBox spacing="5" alignment="CENTER" style="-fx-background-color: #000000; -fx-border-color: #ffffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
+            <Label text="LEVEL" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+            <Label fx:id="levelLabel" text="1" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
+        </VBox>
+        <VBox spacing="5" alignment="CENTER" style="-fx-background-color: #000000; -fx-border-color: #ffffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
+            <Label text="LINES" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+            <Label fx:id="linesLabel" text="0" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
+        </VBox>
+    </VBox>
+    
+    <!-- Center: Game Board -->
+    <VBox alignment="CENTER">
+        <GridPane fx:id="brickPanel" vgap="1" hgap="1"/>
+        <BorderPane styleClass="gameBoard" fx:id="gameBoard">
+            <center>
+                <GridPane fx:id="gamePanel" hgap="1" vgap="1" layoutY="30" layoutX="40"/>
+            </center>
+        </BorderPane>
+        <Group fx:id="groupNotification" layoutX="14" layoutY="203">
+            <VBox alignment="CENTER">
+                <GameOverPanel fx:id="gameOverPanel"/>
+            </VBox>
+        </Group>
+    </VBox>
+    
+    <!-- Right Panel: NEXT Piece -->
+    <VBox spacing="10" alignment="TOP_CENTER" prefWidth="150">
+        <VBox spacing="5" alignment="CENTER" style="-fx-background-color: #000000; -fx-border-color: #ffffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
+            <Label text="NEXT" style="-fx-text-fill: #ffffff; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 0 0 10 0;"/>
+            <GridPane fx:id="nextBrickPanel" hgap="1" vgap="1" alignment="CENTER">
+                <!-- Visual placeholder for next brick - will be populated later -->
+            </GridPane>
+        </VBox>
+    </VBox>
+    
     <stylesheets>
         <URL value="@window_style.css"/>
     </stylesheets>
-</Pane>
+</HBox>

@@ -9,6 +9,7 @@
     <artifactId>CW2025</artifactId>
     <version>1.0-SNAPSHOT</version>
     <name>demo3</name>
+    <!-- Force IntelliJ refresh -->
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -18,7 +19,7 @@
 
         <!-- JavaFX -->
         <javafx.version>23.0.1</javafx.version>
-        <!-- this must match the classifier that exists on Maven Central: '-win' jars DO exist -->
+        <!-- Platform: win (x64) - uses emulation on ARM64 systems like Snapdragon X Elite -->
         <javafx.platform>win</javafx.platform>
 
         <!-- Java language level -->
@@ -31,28 +32,28 @@
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-base</artifactId>
             <version>${javafx.version}</version>
-            <classifier>${javafx.platform}</classifier>
+            <classifier>win</classifier>
         </dependency>
 
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-graphics</artifactId>
             <version>${javafx.version}</version>
-            <classifier>${javafx.platform}</classifier>
+            <classifier>win</classifier>
         </dependency>
 
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>${javafx.version}</version>
-            <classifier>${javafx.platform}</classifier>
+            <classifier>win</classifier>
         </dependency>
 
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
-            <classifier>${javafx.platform}</classifier>
+            <classifier>win</classifier>
         </dependency>
 
         <!-- JUnit 5 -->
@@ -90,18 +91,14 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>com.comp2042.app.Main</mainClass>
-                    <launcher>app</launcher>
-                    <jlinkZipName>app</jlinkZipName>
-                    <jlinkImageName>app</jlinkImageName>
-                    <noManPages>true</noManPages>
-                    <stripDebug>true</stripDebug>
-                    <noHeaderFiles>true</noHeaderFiles>
-
-                    <!-- these keep plugin + deps in sync -->
-                    <javafx.version>${javafx.version}</javafx.version>
-                    <javafx.platform>${javafx.platform}</javafx.platform>
+                    <options>
+                        <option>-Dprism.order=sw</option>
+                        <option>-Djava.awt.headless=false</option>
+                        <option>-Djavafx.platform=win</option>
+                    </options>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
 </project>

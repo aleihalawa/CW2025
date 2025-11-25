@@ -20,10 +20,14 @@ import javafx.scene.effect.Reflection;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
+import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.util.Duration;
@@ -34,6 +38,9 @@ import java.util.ResourceBundle;
 public class GuiController implements Initializable {
 
     private static final int BRICK_SIZE = 20;
+
+    @FXML
+    private ImageView gameBackgroundImage;
 
     @FXML
     private GridPane gamePanel;
@@ -73,6 +80,20 @@ public class GuiController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // Load background image
+        try {
+            URL imageUrl = getClass().getClassLoader().getResource("background_img.jpeg");
+            if (imageUrl != null) {
+                Image image = new Image(imageUrl.toExternalForm());
+                gameBackgroundImage.setImage(image);
+            } else {
+                System.err.println("Could not find background_img.jpeg in resources");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading background image: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
         // Critical: Disable layout management for brickPanel so manual positioning works
         brickPanel.setManaged(false);
         brickPanel.toFront();
@@ -84,6 +105,18 @@ public class GuiController implements Initializable {
         gameOverPanel.toFront();
         
         Font.loadFont(getClass().getClassLoader().getResource("digital.ttf").toExternalForm(), 38);
+        
+        // Set gameBoard size to match gameboard panel (10 columns × 23 visible rows)
+        // Each cell is 21px (20px brick + 1px gap)
+        int boardWidth = 10 * 21;  // 210px
+        int boardHeight = 23 * 21; // 483px
+        gameBoard.setPrefSize(boardWidth, boardHeight);
+        gameBoard.setMinSize(boardWidth, boardHeight);
+        gameBoard.setMaxSize(boardWidth, boardHeight);
+        
+        // Create grid pattern matching brick size (21px cells)
+        createGridPattern(boardWidth, boardHeight);
+        
         gamePanel.setFocusTraversable(true);
         gamePanel.requestFocus();
         gamePanel.setOnKeyPressed(new EventHandler<KeyEvent>() {
@@ -205,6 +238,46 @@ public class GuiController implements Initializable {
         return returnPaint;
     }
 
+    private void createGridPattern(int width, int height) {
+        // Create a Pane to hold grid lines
+        Pane gridPane = new Pane();
+        gridPane.setPrefSize(width, height);
+        gridPane.setMouseTransparent(true);
+        
+        // Grid cell size: 21px (20px brick + 1px gap)
+        int cellSize = BRICK_SIZE + 1;
+        Color gridColor = Color.rgb(50, 50, 60, 0.5);
+        
+        // Draw vertical lines (11 lines for 10 columns: 0, 21, 42, ..., 210)
+        for (int col = 0; col <= 10; col++) {
+            int x = col * cellSize;
+            Line line = new Line(x, 0, x, height);
+            line.setStroke(gridColor);
+            line.setStrokeWidth(1);
+            gridPane.getChildren().add(line);
+        }
+        
+        // Draw horizontal lines (24 lines for 23 rows: 0, 21, 42, ..., 483)
+        for (int row = 0; row <= 23; row++) {
+            int y = row * cellSize;
+            Line line = new Line(0, y, width, y);
+            line.setStroke(gridColor);
+            line.setStrokeWidth(1);
+            gridPane.getChildren().add(line);
+        }
+        
+        // Get the current center node (gamePanel) and wrap it with grid in a StackPane
+        javafx.scene.Node currentCenter = gameBoard.getCenter();
+        if (currentCenter != null) {
+            javafx.scene.layout.StackPane centerPane = new javafx.scene.layout.StackPane();
+            centerPane.getChildren().addAll(gridPane, currentCenter);
+            gridPane.toBack();
+            gameBoard.setCenter(centerPane);
+        } else {
+            // Fallback: just add grid to center
+            gameBoard.setCenter(gridPane);
+        }
+    }
 
     private void refreshBrick(ViewData brick) {
         if (isPause.getValue() == Boolean.FALSE) {

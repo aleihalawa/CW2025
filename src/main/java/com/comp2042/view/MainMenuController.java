@@ -132,7 +132,7 @@ public class MainMenuController implements Initializable {
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
 
             // Create new scene and set it on the stage
-            Scene scene = new Scene(root, 500, 700);
+            Scene scene = new Scene(root, 650, 600);
             stage.setScene(scene);
 
             // Initialize the game controller

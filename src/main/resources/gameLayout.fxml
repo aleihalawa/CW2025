@@ -43,11 +43,7 @@
                     <GridPane fx:id="gamePanel" hgap="1" vgap="1"/>
                 </center>
             </BorderPane>
-            <Group fx:id="groupNotification" layoutX="-133" layoutY="-75">
-                <VBox alignment="CENTER">
-                    <GameOverPanel fx:id="gameOverPanel"/>
-                </VBox>
-            </Group>
+            <Group fx:id="groupNotification"/>
         </VBox>
         
         <!-- Right Panel: NEXT Piece -->
@@ -70,6 +66,9 @@
             <Insets bottom="20" right="20"/>
         </StackPane.margin>
     </Button>
+    
+    <!-- Game Over Panel Overlay -->
+    <GameOverPanel fx:id="gameOverPanel" visible="false" StackPane.alignment="CENTER"/>
     
     <!-- Pause Menu Overlay -->
     <Group fx:id="pauseMenuGroup" visible="false">

@@ -107,6 +107,8 @@ public class GuiController implements Initializable {
     private Rectangle[][] rectangles;
 
     private Timeline timeLine;
+    
+    private IntegerProperty scoreProperty;
 
     private final BooleanProperty isPause = new SimpleBooleanProperty();
 
@@ -137,6 +139,11 @@ public class GuiController implements Initializable {
         groupNotification.toFront();
         gameOverPanel.setManaged(false);
         gameOverPanel.toFront();
+        
+        // Setup game over panel size and position
+        gameOverPanel.setPrefSize(650, 600);
+        gameOverPanel.setLayoutX(0);
+        gameOverPanel.setLayoutY(0);
         
         // Setup pause menu
         if (pauseMenuGroup != null) {
@@ -398,31 +405,69 @@ public class GuiController implements Initializable {
     public void bindScore(IntegerProperty integerProperty) {
         if (scoreLabel != null && integerProperty != null) {
             scoreLabel.textProperty().bind(integerProperty.asString());
+            scoreProperty = integerProperty;
         }
     }
 
     public void gameOver() {
         timeLine.stop();
         
-        // 1. Make visible and bring to front
-        gameOverPanel.setVisible(true);
-        gameOverPanel.toFront();
+        // Get current score from the property
+        int finalScore = 0;
+        if (scoreProperty != null) {
+            finalScore = scoreProperty.get();
+        } else if (scoreLabel != null && scoreLabel.getText() != null) {
+            try {
+                finalScore = Integer.parseInt(scoreLabel.getText());
+            } catch (NumberFormatException e) {
+                finalScore = 0;
+            }
+        }
         
-        // 2. Force a size (Critical because it is unmanaged)
-        // The panel needs explicit dimensions to render correctly
-        double panelWidth = 300;
-        double panelHeight = 150;
-        gameOverPanel.setPrefSize(panelWidth, panelHeight);
-        gameOverPanel.resize(panelWidth, panelHeight);
+        // Setup button handlers
+        gameOverPanel.setOnRestart(e -> {
+            newGame(e);
+        });
         
-        // 3. Center manually: (WindowWidth - PanelWidth) / 2
-        // Window is approx 500x700
-        gameOverPanel.setLayoutX((500 - panelWidth) / 2);
-        gameOverPanel.setLayoutY((700 - panelHeight) / 2);
+        gameOverPanel.setOnMainMenu(e -> {
+            navigateToMainMenu(e);
+        });
+        
+        // Show with animation
+        gameOverPanel.showWithAnimation();
+        
+        // Disable pause button when game is over
+        if (pauseButton != null) {
+            pauseButton.setDisable(true);
+            pauseButton.setOpacity(0.5);
+        }
         
         isGameOver.setValue(Boolean.TRUE);
         // Hide the falling brick when game is over to prevent glitch
         brickPanel.setVisible(false);
+    }
+    
+    private void navigateToMainMenu(ActionEvent event) {
+        try {
+            // Stop the game timeline
+            if (timeLine != null) {
+                timeLine.stop();
+            }
+            
+            // Get the current stage
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            
+            // Load MainMenu.fxml
+            URL location = getClass().getClassLoader().getResource("com/comp2042/view/MainMenu.fxml");
+            FXMLLoader fxmlLoader = new FXMLLoader(location);
+            Parent newRoot = fxmlLoader.load();
+            
+            // Simple direct switch - no transition when going back to main menu
+            Scene scene = new Scene(newRoot, 650, 600);
+            stage.setScene(scene);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void newGame(ActionEvent actionEvent) {
@@ -434,6 +479,13 @@ public class GuiController implements Initializable {
         timeLine.play();
         isPause.setValue(Boolean.FALSE);
         isGameOver.setValue(Boolean.FALSE);
+        
+        // Re-enable pause button for new game
+        if (pauseButton != null) {
+            pauseButton.setDisable(false);
+            pauseButton.setOpacity(1.0);
+            pauseButton.setText("PAUSE");
+        }
     }
 
     public void pauseGame(ActionEvent actionEvent) {

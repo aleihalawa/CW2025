@@ -13,6 +13,9 @@ import javafx.scene.control.Button;
 import javafx.scene.effect.Glow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -22,7 +25,13 @@ import java.util.ResourceBundle;
 public class MainMenuController implements Initializable {
 
     @FXML
+    private MediaView backgroundVideo;
+    
+    @FXML
     private ImageView backgroundImage;
+    
+    @FXML
+    private javafx.scene.layout.StackPane rootPane;
     
     @FXML
     private Button startButton;
@@ -32,27 +41,93 @@ public class MainMenuController implements Initializable {
     
     @FXML
     private Button quitButton;
+    
+    private MediaPlayer mediaPlayer;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Load background image
+        // Try to load background video first
         try {
-            URL imageUrl = getClass().getClassLoader().getResource("MainMenu.jpeg");
-            if (imageUrl != null) {
-                Image image = new Image(imageUrl.toExternalForm());
-                backgroundImage.setImage(image);
+            URL videoUrl = getClass().getClassLoader().getResource("Retro_Arcade_Tetris_Video_Generation.mp4");
+            if (videoUrl != null) {
+                Media media = new Media(videoUrl.toExternalForm());
+                mediaPlayer = new MediaPlayer(media);
+                
+                // Set video to loop indefinitely
+                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+                
+                // Set video to auto-play
+                mediaPlayer.setAutoPlay(true);
+                
+                // Set mute (optional - remove if you want sound)
+                mediaPlayer.setMute(true);
+                
+                // Set the MediaView to use the MediaPlayer
+                backgroundVideo.setMediaPlayer(mediaPlayer);
+                
+                // Center the video and preserve aspect ratio (will crop sides if needed)
+                backgroundVideo.setPreserveRatio(true);
+                
+                // Set fit height to window height (600px), width will adjust automatically
+                // This ensures video fills height and crops sides if video is wider
+                backgroundVideo.setFitHeight(600);
+                
+                // Bind to StackPane height to maintain fit
+                if (rootPane != null) {
+                    backgroundVideo.fitHeightProperty().bind(rootPane.heightProperty());
+                }
+                
+                // Also configure when media is ready to ensure proper centering
+                mediaPlayer.setOnReady(() -> {
+                    backgroundVideo.setPreserveRatio(true);
+                    if (rootPane != null) {
+                        backgroundVideo.setFitHeight(rootPane.getHeight());
+                    } else {
+                        backgroundVideo.setFitHeight(600);
+                    }
+                });
+                
+                // Handle errors - fallback to image if video fails
+                mediaPlayer.setOnError(() -> {
+                    System.err.println("Error playing video: " + mediaPlayer.getError());
+                    fallbackToImage();
+                });
+                
+                // Start playing
+                mediaPlayer.play();
             } else {
-                System.err.println("Could not find MainMenu.jpeg in resources");
+                System.err.println("Could not find Retro_Tetris_Menu_Video_Generation.mp4 in resources");
+                fallbackToImage();
             }
         } catch (Exception e) {
-            System.err.println("Error loading background image: " + e.getMessage());
+            System.err.println("Error loading background video: " + e.getMessage());
             e.printStackTrace();
+            fallbackToImage();
         }
         
         // Add hover effects to all buttons
         setupButtonHoverEffect(startButton);
         setupButtonHoverEffect(settingsButton);
         setupButtonHoverEffect(quitButton);
+    }
+    
+    private void fallbackToImage() {
+        // Hide video and show image fallback
+        if (backgroundVideo != null) {
+            backgroundVideo.setVisible(false);
+        }
+        if (backgroundImage != null) {
+            backgroundImage.setVisible(true);
+            try {
+                URL imageUrl = getClass().getClassLoader().getResource("MainMenu.jpeg");
+                if (imageUrl != null) {
+                    Image image = new Image(imageUrl.toExternalForm());
+                    backgroundImage.setImage(image);
+                }
+            } catch (Exception e) {
+                System.err.println("Error loading fallback image: " + e.getMessage());
+            }
+        }
     }
     
     private void setupButtonHoverEffect(Button button) {
@@ -109,6 +184,13 @@ public class MainMenuController implements Initializable {
 
     @FXML
     private void onStartGame(ActionEvent event) {
+        // Stop and dispose video player when switching to game
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
+            mediaPlayer.dispose();
+            mediaPlayer = null;
+        }
+        
         try {
             // Load gameLayout.fxml
             URL location = getClass().getClassLoader().getResource("gameLayout.fxml");

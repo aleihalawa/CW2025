@@ -4,18 +4,23 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
+<?import javafx.scene.media.MediaView?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.geometry.Insets?>
 
-<StackPane xmlns="http://javafx.com/javafx"
+<StackPane fx:id="rootPane" xmlns="http://javafx.com/javafx"
            xmlns:fx="http://javafx.com/fxml"
            fx:controller="com.comp2042.view.MainMenuController"
            prefWidth="650" prefHeight="600"
            stylesheets="@mainmenu.css">
     
-    <!-- Background Image -->
-    <ImageView fx:id="backgroundImage" fitWidth="650" fitHeight="600" preserveRatio="false" pickOnBounds="true"/>
+    <!-- Background Video -->
+    <MediaView fx:id="backgroundVideo" fitHeight="600" preserveRatio="true" 
+               StackPane.alignment="CENTER"/>
+    
+    <!-- Fallback Background Image (hidden by default, shown if video fails) -->
+    <ImageView fx:id="backgroundImage" fitWidth="650" fitHeight="600" preserveRatio="false" pickOnBounds="true" visible="false"/>
     
     <!-- Menu Buttons -->
     <VBox alignment="CENTER" spacing="15" fx:id="buttonContainer">

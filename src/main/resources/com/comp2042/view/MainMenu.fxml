@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.geometry.Insets?>
+
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.comp2042.view.MainMenuController"
+           prefWidth="650" prefHeight="600"
+           stylesheets="@mainmenu.css">
+    
+    <!-- Background Image -->
+    <ImageView fx:id="backgroundImage" fitWidth="650" fitHeight="600" preserveRatio="false" pickOnBounds="true"/>
+    
+    <!-- Menu Buttons -->
+    <VBox alignment="CENTER" spacing="15" fx:id="buttonContainer">
+        <padding>
+            <Insets top="180"/>
+        </padding>
+        <Button fx:id="startButton" text="START GAME" onAction="#onStartGame" styleClass="menu-button"/>
+        <Button fx:id="settingsButton" text="SETTINGS" onAction="#onSettings" styleClass="menu-button"/>
+        <Button fx:id="quitButton" text="QUIT" onAction="#onQuit" styleClass="menu-button"/>
+    </VBox>
+    
+</StackPane>

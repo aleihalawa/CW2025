@@ -4,54 +4,89 @@
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.Group?>
 <?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.text.Text?>
 <?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import java.net.URL?>
-<HBox fx:controller="com.comp2042.view.GuiController"
-      xmlns:fx="http://javafx.com/fxml" spacing="20" alignment="CENTER" style="-fx-background-color: #2a2a2a; -fx-padding: 20;">
+<StackPane fx:controller="com.comp2042.view.GuiController"
+           xmlns:fx="http://javafx.com/fxml" prefWidth="650" prefHeight="600">
     
-    <!-- Left Panel: Score, Level, Lines -->
-    <VBox spacing="15" alignment="TOP_CENTER" prefWidth="150">
-        <VBox spacing="5" alignment="CENTER" style="-fx-background-color: #000000; -fx-border-color: #ffffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
-            <Label text="SCORE" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
-            <Label fx:id="scoreLabel" text="0" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
-        </VBox>
-        <VBox spacing="5" alignment="CENTER" style="-fx-background-color: #000000; -fx-border-color: #ffffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
-            <Label text="LEVEL" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
-            <Label fx:id="levelLabel" text="1" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
-        </VBox>
-        <VBox spacing="5" alignment="CENTER" style="-fx-background-color: #000000; -fx-border-color: #ffffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
-            <Label text="LINES" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
-            <Label fx:id="linesLabel" text="0" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
-        </VBox>
-    </VBox>
+    <!-- Background Image -->
+    <ImageView fx:id="gameBackgroundImage" fitWidth="650" fitHeight="600" preserveRatio="false" pickOnBounds="true"/>
     
-    <!-- Center: Game Board -->
-    <VBox alignment="CENTER">
-        <GridPane fx:id="brickPanel" vgap="1" hgap="1"/>
-        <BorderPane styleClass="gameBoard" fx:id="gameBoard">
-            <center>
-                <GridPane fx:id="gamePanel" hgap="1" vgap="1" layoutY="30" layoutX="40"/>
-            </center>
-        </BorderPane>
-        <Group fx:id="groupNotification" layoutX="-133" layoutY="-75">
-            <VBox alignment="CENTER">
-                <GameOverPanel fx:id="gameOverPanel"/>
+    <!-- Game Content -->
+    <HBox spacing="20" alignment="CENTER" style="-fx-padding: 20;">
+        
+        <!-- Left Panel: Score, Level, Lines -->
+        <VBox spacing="15" alignment="TOP_CENTER" prefWidth="150">
+            <VBox spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
+                <Label text="SCORE" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                <Label fx:id="scoreLabel" text="0" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
             </VBox>
-        </Group>
-    </VBox>
-    
-    <!-- Right Panel: NEXT Piece -->
-    <VBox spacing="10" alignment="TOP_CENTER" prefWidth="150">
-        <VBox spacing="5" alignment="CENTER" style="-fx-background-color: #000000; -fx-border-color: #ffffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
-            <Label text="NEXT" style="-fx-text-fill: #ffffff; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 0 0 10 0;"/>
-            <GridPane fx:id="nextBrickPanel" hgap="1" vgap="1" alignment="CENTER">
-                <!-- Visual placeholder for next brick - will be populated later -->
-            </GridPane>
+            <VBox spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
+                <Label text="LEVEL" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                <Label fx:id="levelLabel" text="1" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
+            </VBox>
+            <VBox spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
+                <Label text="LINES" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                <Label fx:id="linesLabel" text="0" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
+            </VBox>
         </VBox>
-    </VBox>
+        
+        <!-- Center: Game Board -->
+        <VBox alignment="CENTER">
+            <GridPane fx:id="brickPanel" vgap="1" hgap="1"/>
+            <BorderPane styleClass="gameBoard" fx:id="gameBoard">
+                <center>
+                    <GridPane fx:id="gamePanel" hgap="1" vgap="1"/>
+                </center>
+            </BorderPane>
+            <Group fx:id="groupNotification" layoutX="-133" layoutY="-75">
+                <VBox alignment="CENTER">
+                    <GameOverPanel fx:id="gameOverPanel"/>
+                </VBox>
+            </Group>
+        </VBox>
+        
+        <!-- Right Panel: NEXT Piece -->
+        <VBox spacing="10" alignment="TOP_CENTER" prefWidth="150">
+            <VBox spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
+                <Label text="NEXT" style="-fx-text-fill: #ffffff; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 0 0 10 0;"/>
+                <GridPane fx:id="nextBrickPanel" hgap="1" vgap="1" alignment="CENTER">
+                    <!-- Visual placeholder for next brick - will be populated later -->
+                </GridPane>
+            </VBox>
+        </VBox>
+        
+    </HBox>
+    
+    <!-- Pause Button - Bottom Right -->
+    <Button fx:id="pauseButton" text="PAUSE" onAction="#onPause" 
+            style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-text-fill: #00ffff; -fx-font-family: 'Impact', 'Arial Black', sans-serif; -fx-font-size: 14px; -fx-font-weight: bold; -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-padding: 8px 16px; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, #00ffff, 8, 0.5, 0, 0);"
+            StackPane.alignment="BOTTOM_RIGHT">
+        <StackPane.margin>
+            <Insets bottom="20" right="20"/>
+        </StackPane.margin>
+    </Button>
+    
+    <!-- Pause Menu Overlay -->
+    <Group fx:id="pauseMenuGroup" visible="false">
+        <!-- Dimming overlay -->
+        <Rectangle fx:id="dimOverlay" width="650" height="600" fill="rgba(0, 0, 0, 0.6)"/>
+        <!-- Pause menu image -->
+        <ImageView fx:id="pauseMenuImage" fitWidth="280" preserveRatio="true"/>
+        <!-- Pause menu buttons -->
+        <VBox fx:id="pauseMenuButtons" spacing="30" alignment="CENTER">
+            <Button fx:id="resumeButton" text="RESUME" onAction="#onResume" styleClass="pause-menu-button"/>
+            <Button fx:id="settingsPauseButton" text="SETTINGS" onAction="#onPauseSettings" styleClass="pause-menu-button"/>
+            <Button fx:id="howToPlayPauseButton" text="HOW TO PLAY" onAction="#onPauseHowToPlay" styleClass="pause-menu-button"/>
+            <Button fx:id="quitPauseButton" text="EXIT TO MAIN MENU" onAction="#onPauseQuit" styleClass="pause-menu-button"/>
+        </VBox>
+    </Group>
     
     <stylesheets>
         <URL value="@window_style.css"/>
     </stylesheets>
-</HBox>
+</StackPane>

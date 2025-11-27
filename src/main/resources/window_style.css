@@ -9,9 +9,10 @@
 }
 
 .gameBoard {
-    -fx-border-color: linear-gradient(#2A5058, #61a2b1);
-    -fx-border-width: 12px;
-    -fx-border-radius: 12px;
+    -fx-border-color: #333333;
+    -fx-border-width: 2px;
+    -fx-border-radius: 0px;
+    -fx-background-color: rgba(20, 20, 30, 0.9);
 }
 
 .nextBrickLabel {
@@ -69,4 +70,31 @@
     -fx-font-size: 38;
     -fx-fill: yellow;
     -fx-text-fill: yellow;
+}
+
+.pause-menu-button {
+    -fx-background-color: rgba(0, 0, 0, 0.8);
+    -fx-text-fill: #00ffff;
+    -fx-font-family: "Impact", "Arial Black", sans-serif;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-border-color: #00ffff;
+    -fx-border-width: 2px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-min-width: 180px;
+    -fx-min-height: 35px;
+    -fx-padding: 8px 16px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, #00ffff, 8, 0.5, 0, 0);
+}
+
+.pause-menu-button:hover {
+    -fx-background-color: rgba(0, 255, 255, 0.3);
+    -fx-text-fill: #ffffff;
+    -fx-effect: dropshadow(gaussian, #00ffff, 12, 0.7, 0, 0);
+}
+
+.pause-menu-button:pressed {
+    -fx-background-color: rgba(0, 255, 255, 0.5);
 }

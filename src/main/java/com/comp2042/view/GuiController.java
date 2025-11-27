@@ -14,8 +14,13 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Group;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 import javafx.scene.effect.Reflection;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -26,6 +31,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Line;
@@ -78,6 +84,21 @@ public class GuiController implements Initializable {
 
     @FXML
     private ImageView pauseMenuImage;
+
+    @FXML
+    private VBox pauseMenuButtons;
+
+    @FXML
+    private Button resumeButton;
+
+    @FXML
+    private Button settingsPauseButton;
+
+    @FXML
+    private Button howToPlayPauseButton;
+
+    @FXML
+    private Button quitPauseButton;
 
     private Rectangle[][] displayMatrix;
 
@@ -441,8 +462,18 @@ public class GuiController implements Initializable {
                 double imageHeight = pauseMenuImage.getImage() != null ? 
                     (pauseMenuImage.getImage().getHeight() * imageWidth / pauseMenuImage.getImage().getWidth()) : 300;
                 
-                pauseMenuImage.setLayoutX((windowWidth - imageWidth) / 2);
-                pauseMenuImage.setLayoutY((windowHeight - imageHeight) / 2);
+                double imageX = (windowWidth - imageWidth) / 2;
+                double imageY = (windowHeight - imageHeight) / 2;
+                pauseMenuImage.setLayoutX(imageX);
+                pauseMenuImage.setLayoutY(imageY);
+                
+                // Position buttons over the pause menu image (centered, slightly below image center)
+                if (pauseMenuButtons != null) {
+                    pauseMenuButtons.setManaged(false);
+                    // Position buttons in the center, slightly offset down from image center
+                    pauseMenuButtons.setLayoutX((windowWidth - 180) / 2); // 180 is min-width of buttons
+                    pauseMenuButtons.setLayoutY(imageY + imageHeight * 0.4); // Position buttons in lower part of image
+                }
             }
             
             System.out.println("Game paused");
@@ -461,5 +492,55 @@ public class GuiController implements Initializable {
             System.out.println("Game resumed");
         }
         gamePanel.requestFocus();
+    }
+
+    @FXML
+    private void onResume(ActionEvent event) {
+        // Resume the game (same as clicking pause button again)
+        if (isPause.getValue() == Boolean.TRUE) {
+            isPause.setValue(Boolean.FALSE);
+            if (timeLine != null) {
+                timeLine.play();
+            }
+            pauseButton.setText("PAUSE");
+            if (pauseMenuGroup != null) {
+                pauseMenuGroup.setVisible(false);
+            }
+        }
+        gamePanel.requestFocus();
+    }
+
+    @FXML
+    private void onPauseSettings(ActionEvent event) {
+        System.out.println("Settings feature coming soon");
+    }
+
+    @FXML
+    private void onPauseHowToPlay(ActionEvent event) {
+        System.out.println("How to Play feature coming soon");
+    }
+
+    @FXML
+    private void onPauseQuit(ActionEvent event) {
+        try {
+            // Stop the game timeline
+            if (timeLine != null) {
+                timeLine.stop();
+            }
+            
+            // Load MainMenu.fxml
+            URL location = getClass().getClassLoader().getResource("com/comp2042/view/MainMenu.fxml");
+            FXMLLoader fxmlLoader = new FXMLLoader(location);
+            Parent root = fxmlLoader.load();
+
+            // Get the current stage
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+
+            // Create new scene and set it on the stage
+            Scene scene = new Scene(root, 650, 600);
+            stage.setScene(scene);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

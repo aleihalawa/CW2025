@@ -18,16 +18,13 @@
     <ImageView fx:id="backgroundImage" fitWidth="650" fitHeight="600" preserveRatio="false" pickOnBounds="true"/>
     
     <!-- Menu Buttons -->
-    <VBox alignment="BOTTOM_CENTER" spacing="15" fx:id="buttonContainer">
+    <VBox alignment="CENTER" spacing="15" fx:id="buttonContainer">
         <padding>
-            <Insets bottom="50"/>
+            <Insets top="180"/>
         </padding>
         <Button fx:id="startButton" text="START GAME" onAction="#onStartGame" styleClass="menu-button"/>
-        <Button fx:id="levelButton" text="LEVEL: 1" onAction="#onLevelSelect" styleClass="menu-button"/>
-        <Button fx:id="instructionsButton" text="HOW TO PLAY" onAction="#onInstructions" styleClass="menu-button"/>
         <Button fx:id="settingsButton" text="SETTINGS" onAction="#onSettings" styleClass="menu-button"/>
         <Button fx:id="quitButton" text="QUIT" onAction="#onQuit" styleClass="menu-button"/>
-        <Label fx:id="highScoreLabel" text="HIGH SCORE: 0" styleClass="high-score-label"/>
     </VBox>
     
 </StackPane>

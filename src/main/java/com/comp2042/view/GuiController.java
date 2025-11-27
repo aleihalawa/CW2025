@@ -19,6 +19,7 @@ import javafx.scene.Group;
 import javafx.scene.effect.Reflection;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -66,6 +67,18 @@ public class GuiController implements Initializable {
     @FXML
     private Label linesLabel;
 
+    @FXML
+    private Button pauseButton;
+
+    @FXML
+    private Group pauseMenuGroup;
+
+    @FXML
+    private Rectangle dimOverlay;
+
+    @FXML
+    private ImageView pauseMenuImage;
+
     private Rectangle[][] displayMatrix;
 
     private InputEventListener eventListener;
@@ -103,6 +116,27 @@ public class GuiController implements Initializable {
         groupNotification.toFront();
         gameOverPanel.setManaged(false);
         gameOverPanel.toFront();
+        
+        // Setup pause menu
+        if (pauseMenuGroup != null) {
+            pauseMenuGroup.setManaged(false);
+            pauseMenuGroup.setVisible(false);
+            pauseMenuGroup.toFront();
+        }
+        
+        // Load pause menu image
+        try {
+            URL pauseMenuUrl = getClass().getClassLoader().getResource("Pause_menu.png");
+            if (pauseMenuUrl != null && pauseMenuImage != null) {
+                Image pauseImage = new Image(pauseMenuUrl.toExternalForm());
+                pauseMenuImage.setImage(pauseImage);
+            } else {
+                System.err.println("Could not find Pause_menu.png in resources");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading pause menu image: " + e.getMessage());
+            e.printStackTrace();
+        }
         
         Font.loadFont(getClass().getClassLoader().getResource("digital.ttf").toExternalForm(), 38);
         
@@ -382,6 +416,50 @@ public class GuiController implements Initializable {
     }
 
     public void pauseGame(ActionEvent actionEvent) {
+        gamePanel.requestFocus();
+    }
+
+    @FXML
+    private void onPause(ActionEvent event) {
+        // Toggle pause state
+        if (isPause.getValue() == Boolean.FALSE) {
+            isPause.setValue(Boolean.TRUE);
+            if (timeLine != null) {
+                timeLine.pause();
+            }
+            pauseButton.setText("RESUME");
+            
+            // Show pause menu
+            if (pauseMenuGroup != null && pauseMenuImage != null) {
+                pauseMenuGroup.setVisible(true);
+                pauseMenuGroup.toFront();
+                
+                // Center the pause menu image
+                double windowWidth = 650;
+                double windowHeight = 600;
+                double imageWidth = pauseMenuImage.getFitWidth();
+                double imageHeight = pauseMenuImage.getImage() != null ? 
+                    (pauseMenuImage.getImage().getHeight() * imageWidth / pauseMenuImage.getImage().getWidth()) : 300;
+                
+                pauseMenuImage.setLayoutX((windowWidth - imageWidth) / 2);
+                pauseMenuImage.setLayoutY((windowHeight - imageHeight) / 2);
+            }
+            
+            System.out.println("Game paused");
+        } else {
+            isPause.setValue(Boolean.FALSE);
+            if (timeLine != null) {
+                timeLine.play();
+            }
+            pauseButton.setText("PAUSE");
+            
+            // Hide pause menu
+            if (pauseMenuGroup != null) {
+                pauseMenuGroup.setVisible(false);
+            }
+            
+            System.out.println("Game resumed");
+        }
         gamePanel.requestFocus();
     }
 }

@@ -4,6 +4,7 @@
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.Group?>
 <?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.text.Text?>
 <?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.image.Image?>
@@ -60,6 +61,23 @@
         </VBox>
         
     </HBox>
+    
+    <!-- Pause Button - Bottom Right -->
+    <Button fx:id="pauseButton" text="PAUSE" onAction="#onPause" 
+            style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-text-fill: #00ffff; -fx-font-family: 'Impact', 'Arial Black', sans-serif; -fx-font-size: 14px; -fx-font-weight: bold; -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-padding: 8px 16px; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, #00ffff, 8, 0.5, 0, 0);"
+            StackPane.alignment="BOTTOM_RIGHT">
+        <StackPane.margin>
+            <Insets bottom="20" right="20"/>
+        </StackPane.margin>
+    </Button>
+    
+    <!-- Pause Menu Overlay -->
+    <Group fx:id="pauseMenuGroup" visible="false">
+        <!-- Dimming overlay -->
+        <Rectangle fx:id="dimOverlay" width="650" height="600" fill="rgba(0, 0, 0, 0.6)"/>
+        <!-- Pause menu image -->
+        <ImageView fx:id="pauseMenuImage" fitWidth="280" preserveRatio="true"/>
+    </Group>
     
     <stylesheets>
         <URL value="@window_style.css"/>

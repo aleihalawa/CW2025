@@ -10,7 +10,6 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.effect.Glow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -29,19 +28,10 @@ public class MainMenuController implements Initializable {
     private Button startButton;
     
     @FXML
-    private Button levelButton;
-    
-    @FXML
-    private Button instructionsButton;
-    
-    @FXML
     private Button settingsButton;
     
     @FXML
     private Button quitButton;
-    
-    @FXML
-    private Label highScoreLabel;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -61,8 +51,6 @@ public class MainMenuController implements Initializable {
         
         // Add hover effects to all buttons
         setupButtonHoverEffect(startButton);
-        setupButtonHoverEffect(levelButton);
-        setupButtonHoverEffect(instructionsButton);
         setupButtonHoverEffect(settingsButton);
         setupButtonHoverEffect(quitButton);
     }
@@ -140,16 +128,6 @@ public class MainMenuController implements Initializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @FXML
-    private void onLevelSelect(ActionEvent event) {
-        System.out.println("Feature coming soon");
-    }
-
-    @FXML
-    private void onInstructions(ActionEvent event) {
-        System.out.println("Feature coming soon");
     }
 
     @FXML

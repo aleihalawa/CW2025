@@ -519,12 +519,12 @@ public class GuiController implements Initializable {
                 pauseMenuImage.setLayoutX(imageX);
                 pauseMenuImage.setLayoutY(imageY);
                 
-                // Position buttons over the pause menu image (centered, slightly below image center)
+                // Position buttons over the pause menu image (shifted up and left)
                 if (pauseMenuButtons != null) {
                     pauseMenuButtons.setManaged(false);
-                    // Position buttons in the center, slightly offset down from image center
-                    pauseMenuButtons.setLayoutX((windowWidth - 180) / 2); // 180 is min-width of buttons
-                    pauseMenuButtons.setLayoutY(imageY + imageHeight * 0.4); // Position buttons in lower part of image
+                    // Position buttons shifted right and down to match the panel
+                    pauseMenuButtons.setLayoutX((windowWidth - 180) / 2 - 20); // Shift right (was -50, now -20)
+                    pauseMenuButtons.setLayoutY(imageY + imageHeight * 0.35); // Shift down more (was 0.25, now 0.35)
                 }
             }
             

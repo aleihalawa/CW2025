@@ -37,6 +37,7 @@
         
         <!-- Center: Game Board -->
         <VBox alignment="CENTER">
+            <GridPane fx:id="ghostPanel" vgap="1" hgap="1"/>
             <GridPane fx:id="brickPanel" vgap="1" hgap="1"/>
             <BorderPane styleClass="gameBoard" fx:id="gameBoard">
                 <center>

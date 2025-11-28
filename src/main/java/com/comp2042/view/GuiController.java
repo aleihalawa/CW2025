@@ -36,6 +36,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.StrokeType;
 import javafx.scene.text.Font;
 import javafx.util.Duration;
 
@@ -57,6 +58,9 @@ public class GuiController implements Initializable {
 
     @FXML
     private Group groupNotification;
+
+    @FXML
+    private GridPane ghostPanel;
 
     @FXML
     private GridPane brickPanel;
@@ -105,6 +109,7 @@ public class GuiController implements Initializable {
     private InputEventListener eventListener;
 
     private Rectangle[][] rectangles;
+    private Rectangle[][] ghostRectangles;
 
     private Timeline timeLine;
     
@@ -130,9 +135,13 @@ public class GuiController implements Initializable {
             e.printStackTrace();
         }
         
-        // Critical: Disable layout management for brickPanel so manual positioning works
+        // Critical: Disable layout management for ghostPanel and brickPanel so manual positioning works
+        ghostPanel.setManaged(false);
         brickPanel.setManaged(false);
-        brickPanel.toFront();
+        // Ensure proper z-order: gamePanel at back, ghostPanel in middle, brickPanel at front
+        // Since they're in a VBox, we need to manage z-order explicitly
+        ghostPanel.toFront(); // Bring ghost in front of gamePanel
+        brickPanel.toFront(); // Bring brick in front of ghost
         
         // Disable layout management for overlays to prevent layout shifts
         groupNotification.setManaged(false);
@@ -235,6 +244,29 @@ public class GuiController implements Initializable {
                 brickPanel.add(rectangle, j, i);
             }
         }
+
+        // Initialize ghost panel with rectangles (outline only, no fill)
+        ghostRectangles = new Rectangle[brick.getBrickData().length][brick.getBrickData()[0].length];
+        for (int i = 0; i < brick.getBrickData().length; i++) {
+            for (int j = 0; j < brick.getBrickData()[i].length; j++) {
+                Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
+                // Ghost piece: no fill, only thin outline in brick color with neon glow
+                rectangle.setFill(Color.TRANSPARENT);
+                Paint brickColor = getFillColor(brick.getBrickData()[i][j]);
+                if (brickColor instanceof Color) {
+                    rectangle.setStroke((Color) brickColor);
+                    rectangle.setStrokeWidth(1.0); // Thin outline
+                    rectangle.setStrokeType(StrokeType.INSIDE); // Stroke inside bounds for perfect alignment
+                    // Add slight neon glow effect
+                    javafx.scene.effect.Glow glow = new javafx.scene.effect.Glow(0.6);
+                    rectangle.setEffect(glow);
+                }
+                rectangle.setArcHeight(9);
+                rectangle.setArcWidth(9);
+                ghostRectangles[i][j] = rectangle;
+                ghostPanel.add(rectangle, j, i);
+            }
+        }
         // Use localToScene to dynamically align with gamePanel grid
         // 1. Get the exact screen position of the Board Grid (gamePanel)
         if (gamePanel.getScene() != null && brickPanel.getParent() != null) {
@@ -254,6 +286,13 @@ public class GuiController implements Initializable {
             // 5. Position brickPanel to align with gamePanel grid
             brickPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
             brickPanel.setLayoutY(boardOffsetY + ((brick.getyPosition() - 2) * cellHeight));
+            
+            // 6. Position ghostPanel at the ghost Y position (same X, different Y)
+            // Use the exact same parent and calculation as brickPanel since they're siblings
+            if (ghostPanel != null) {
+                ghostPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
+                ghostPanel.setLayoutY(boardOffsetY + ((brick.getGhostY() - 2) * cellHeight));
+            }
         }
         // If scene not attached yet, refreshBrick will handle positioning on first update
 
@@ -299,7 +338,7 @@ public class GuiController implements Initializable {
         }
         return returnPaint;
     }
-
+    
     private void createGridPattern(int width, int height) {
         // Create a Pane to hold grid lines
         Pane gridPane = new Pane();
@@ -361,11 +400,45 @@ public class GuiController implements Initializable {
                 // 5. Position brickPanel to align with gamePanel grid
                 brickPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
                 brickPanel.setLayoutY(boardOffsetY + ((brick.getyPosition() - 2) * cellHeight));
+                
+                // 6. Position ghostPanel at the ghost Y position (same X, different Y)
+                // Use the exact same parent and calculation as brickPanel since they're siblings
+                if (ghostPanel != null && ghostRectangles != null) {
+                    ghostPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
+                    ghostPanel.setLayoutY(boardOffsetY + ((brick.getGhostY() - 2) * cellHeight));
+                }
             }
             
+            // Update brick rectangles
             for (int i = 0; i < brick.getBrickData().length; i++) {
                 for (int j = 0; j < brick.getBrickData()[i].length; j++) {
                     setRectangleData(brick.getBrickData()[i][j], rectangles[i][j]);
+                }
+            }
+            
+            // Update ghost rectangles to match brick shape with outline only
+            if (ghostRectangles != null) {
+                for (int i = 0; i < brick.getBrickData().length; i++) {
+                    for (int j = 0; j < brick.getBrickData()[i].length; j++) {
+                        int brickValue = brick.getBrickData()[i][j];
+                        if (brickValue != 0) {
+                            // Show ghost piece where brick has blocks, with thin outline in brick color
+                            ghostRectangles[i][j].setVisible(true);
+                            ghostRectangles[i][j].setFill(Color.TRANSPARENT);
+                            Paint brickColor = getFillColor(brickValue);
+                            if (brickColor instanceof Color) {
+                                ghostRectangles[i][j].setStroke((Color) brickColor);
+                                ghostRectangles[i][j].setStrokeWidth(1.0); // Thin outline
+                                ghostRectangles[i][j].setStrokeType(StrokeType.INSIDE); // Stroke inside bounds for perfect alignment
+                                // Add slight neon glow effect
+                                javafx.scene.effect.Glow glow = new javafx.scene.effect.Glow(0.6);
+                                ghostRectangles[i][j].setEffect(glow);
+                            }
+                        } else {
+                            // Hide ghost piece where brick has no blocks
+                            ghostRectangles[i][j].setVisible(false);
+                        }
+                    }
                 }
             }
         }
@@ -443,8 +516,11 @@ public class GuiController implements Initializable {
         }
         
         isGameOver.setValue(Boolean.TRUE);
-        // Hide the falling brick when game is over to prevent glitch
+        // Hide the falling brick and ghost when game is over to prevent glitch
         brickPanel.setVisible(false);
+        if (ghostPanel != null) {
+            ghostPanel.setVisible(false);
+        }
     }
     
     private void navigateToMainMenu(ActionEvent event) {
@@ -474,6 +550,9 @@ public class GuiController implements Initializable {
         timeLine.stop();
         gameOverPanel.setVisible(false);
         brickPanel.setVisible(true); // Make brick panel visible again for new game
+        if (ghostPanel != null) {
+            ghostPanel.setVisible(true); // Make ghost panel visible again for new game
+        }
         eventListener.createNewGame();
         gamePanel.requestFocus();
         timeLine.play();

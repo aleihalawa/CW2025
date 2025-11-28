@@ -46,11 +46,31 @@ public class MainMenuController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // Ensure video is visible and image is hidden by default
+        if (backgroundVideo != null) {
+            backgroundVideo.setVisible(true);
+        }
+        if (backgroundImage != null) {
+            backgroundImage.setVisible(false);
+        }
+        
         // Try to load background video first
         try {
             URL videoUrl = getClass().getClassLoader().getResource("Retro_Arcade_Tetris_Video_Generation.mp4");
             if (videoUrl != null) {
-                Media media = new Media(videoUrl.toExternalForm());
+                String videoPath = videoUrl.toExternalForm();
+                System.out.println("Loading video from: " + videoPath);
+                
+                Media media = new Media(videoPath);
+                
+                // Check for media errors during construction
+                media.errorProperty().addListener((obs, oldError, newError) -> {
+                    if (newError != null) {
+                        System.err.println("Media error during construction: " + newError.getMessage());
+                        fallbackToImage();
+                    }
+                });
+                
                 mediaPlayer = new MediaPlayer(media);
                 
                 // Set video to loop indefinitely
@@ -79,24 +99,44 @@ public class MainMenuController implements Initializable {
                 
                 // Also configure when media is ready to ensure proper centering
                 mediaPlayer.setOnReady(() -> {
+                    System.out.println("Video media is ready");
                     backgroundVideo.setPreserveRatio(true);
                     if (rootPane != null) {
                         backgroundVideo.setFitHeight(rootPane.getHeight());
                     } else {
                         backgroundVideo.setFitHeight(600);
                     }
+                    // Ensure video is visible when ready
+                    if (backgroundVideo != null) {
+                        backgroundVideo.setVisible(true);
+                    }
+                    if (backgroundImage != null) {
+                        backgroundImage.setVisible(false);
+                    }
                 });
                 
                 // Handle errors - fallback to image if video fails
                 mediaPlayer.setOnError(() -> {
                     System.err.println("Error playing video: " + mediaPlayer.getError());
+                    if (mediaPlayer.getError() != null) {
+                        System.err.println("Error details: " + mediaPlayer.getError().getMessage());
+                    }
                     fallbackToImage();
+                });
+                
+                // Monitor status to catch any issues
+                mediaPlayer.statusProperty().addListener((obs, oldStatus, newStatus) -> {
+                    System.out.println("MediaPlayer status: " + newStatus);
+                    if (newStatus == javafx.scene.media.MediaPlayer.Status.HALTED) {
+                        System.err.println("MediaPlayer halted - falling back to image");
+                        fallbackToImage();
+                    }
                 });
                 
                 // Start playing
                 mediaPlayer.play();
             } else {
-                System.err.println("Could not find Retro_Tetris_Menu_Video_Generation.mp4 in resources");
+                System.err.println("Could not find Retro_Arcade_Tetris_Video_Generation.mp4 in resources");
                 fallbackToImage();
             }
         } catch (Exception e) {
@@ -112,9 +152,22 @@ public class MainMenuController implements Initializable {
     }
     
     private void fallbackToImage() {
+        System.out.println("Falling back to static image");
+        // Stop and dispose video player
+        if (mediaPlayer != null) {
+            try {
+                mediaPlayer.stop();
+                mediaPlayer.dispose();
+            } catch (Exception e) {
+                System.err.println("Error disposing media player: " + e.getMessage());
+            }
+            mediaPlayer = null;
+        }
+        
         // Hide video and show image fallback
         if (backgroundVideo != null) {
             backgroundVideo.setVisible(false);
+            backgroundVideo.setMediaPlayer(null);
         }
         if (backgroundImage != null) {
             backgroundImage.setVisible(true);
@@ -123,6 +176,8 @@ public class MainMenuController implements Initializable {
                 if (imageUrl != null) {
                     Image image = new Image(imageUrl.toExternalForm());
                     backgroundImage.setImage(image);
+                } else {
+                    System.err.println("Could not find MainMenu.jpeg fallback image");
                 }
             } catch (Exception e) {
                 System.err.println("Error loading fallback image: " + e.getMessage());

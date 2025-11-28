@@ -75,16 +75,16 @@
 .pause-menu-button {
     -fx-background-color: rgba(0, 0, 0, 0.8);
     -fx-text-fill: #00ffff;
-    -fx-font-family: "Impact", "Arial Black", sans-serif;
-    -fx-font-size: 14px;
+    -fx-font-family: "Public Pixel", "Impact", "Arial Black", sans-serif;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
     -fx-border-color: #00ffff;
     -fx-border-width: 2px;
     -fx-border-radius: 5px;
     -fx-background-radius: 5px;
-    -fx-min-width: 180px;
-    -fx-min-height: 35px;
-    -fx-padding: 8px 16px;
+    -fx-min-width: 165px;
+    -fx-min-height: 32px;
+    -fx-padding: 6px 14px;
     -fx-cursor: hand;
     -fx-effect: dropshadow(gaussian, #00ffff, 8, 0.5, 0, 0);
 }

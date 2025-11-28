@@ -17,7 +17,7 @@
     
     <!-- Background Video -->
     <MediaView fx:id="backgroundVideo" fitHeight="600" preserveRatio="true" 
-               StackPane.alignment="CENTER"/>
+               StackPane.alignment="CENTER" visible="true"/>
     
     <!-- Fallback Background Image (hidden by default, shown if video fails) -->
     <ImageView fx:id="backgroundImage" fitWidth="650" fitHeight="600" preserveRatio="false" pickOnBounds="true" visible="false"/>
@@ -27,7 +27,7 @@
         <padding>
             <Insets top="180"/>
         </padding>
-        <Button fx:id="startButton" text="START GAME" onAction="#onStartGame" styleClass="menu-button"/>
+        <Button fx:id="startButton" text="START" onAction="#onStartGame" styleClass="menu-button"/>
         <Button fx:id="settingsButton" text="SETTINGS" onAction="#onSettings" styleClass="menu-button"/>
         <Button fx:id="quitButton" text="QUIT" onAction="#onQuit" styleClass="menu-button"/>
     </VBox>

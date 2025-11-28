@@ -210,6 +210,16 @@ public class GuiController implements Initializable {
                         moveDown(new MoveEvent(EventType.DOWN, EventSource.USER));
                         keyEvent.consume();
                     }
+                    if (keyEvent.getCode() == KeyCode.SPACE) {
+                        DownData downData = eventListener.onSpaceEvent(new MoveEvent(EventType.DOWN, EventSource.USER));
+                        if (downData.getClearRow() != null && downData.getClearRow().getLinesRemoved() > 0) {
+                            NotificationPanel notificationPanel = new NotificationPanel("+" + downData.getClearRow().getScoreBonus());
+                            groupNotification.getChildren().add(notificationPanel);
+                            notificationPanel.showScore(groupNotification.getChildren());
+                        }
+                        refreshBrick(downData.getViewData());
+                        keyEvent.consume();
+                    }
                 }
                 if (keyEvent.getCode() == KeyCode.N) {
                     newGame(null);

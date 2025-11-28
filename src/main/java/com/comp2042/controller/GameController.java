@@ -53,6 +53,25 @@ public class GameController implements InputEventListener {
         return board.getViewData();
     }
 
+    @Override
+    public DownData onSpaceEvent(MoveEvent event) {
+        // Hard drop: keep moving down until collision
+        int dropCount = 0;
+        while (board.moveBrickDown()) {
+            dropCount++;
+        }
+        
+        // Calculate and apply hard drop score (2 points per cell dropped)
+        if (dropCount > 0 && event.getEventSource() == EventSource.USER) {
+            int hardDropScore = dropCount * 2;
+            board.getScore().add(hardDropScore);
+        }
+        
+        // Lock the piece and handle new brick
+        ClearRow clearRow = lockPieceAndHandleNewBrick();
+        
+        return new DownData(clearRow, board.getViewData());
+    }
 
     @Override
     public void createNewGame() {

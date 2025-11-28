@@ -11,8 +11,6 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.effect.Glow;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
@@ -28,9 +26,6 @@ public class MainMenuController implements Initializable {
     private MediaView backgroundVideo;
     
     @FXML
-    private ImageView backgroundImage;
-    
-    @FXML
     private javafx.scene.layout.StackPane rootPane;
     
     @FXML
@@ -43,107 +38,22 @@ public class MainMenuController implements Initializable {
     private Button quitButton;
     
     private MediaPlayer mediaPlayer;
+    private static final int MAX_RETRY_ATTEMPTS = 3;
+    private int retryAttempts = 0;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Ensure video is visible and image is hidden by default
+        // Dispose any existing media player first (in case of scene reload)
+        disposeMediaPlayer();
+        
+        // Ensure video is visible
         if (backgroundVideo != null) {
             backgroundVideo.setVisible(true);
-        }
-        if (backgroundImage != null) {
-            backgroundImage.setVisible(false);
+            backgroundVideo.setMediaPlayer(null); // Clear any previous media player
         }
         
-        // Try to load background video first
-        try {
-            URL videoUrl = getClass().getClassLoader().getResource("Retro_Arcade_Tetris_Video_Generation.mp4");
-            if (videoUrl != null) {
-                String videoPath = videoUrl.toExternalForm();
-                System.out.println("Loading video from: " + videoPath);
-                
-                Media media = new Media(videoPath);
-                
-                // Check for media errors during construction
-                media.errorProperty().addListener((obs, oldError, newError) -> {
-                    if (newError != null) {
-                        System.err.println("Media error during construction: " + newError.getMessage());
-                        fallbackToImage();
-                    }
-                });
-                
-                mediaPlayer = new MediaPlayer(media);
-                
-                // Set video to loop indefinitely
-                mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-                
-                // Set video to auto-play
-                mediaPlayer.setAutoPlay(true);
-                
-                // Set mute (optional - remove if you want sound)
-                mediaPlayer.setMute(true);
-                
-                // Set the MediaView to use the MediaPlayer
-                backgroundVideo.setMediaPlayer(mediaPlayer);
-                
-                // Center the video and preserve aspect ratio (will crop sides if needed)
-                backgroundVideo.setPreserveRatio(true);
-                
-                // Set fit height to window height (600px), width will adjust automatically
-                // This ensures video fills height and crops sides if video is wider
-                backgroundVideo.setFitHeight(600);
-                
-                // Bind to StackPane height to maintain fit
-                if (rootPane != null) {
-                    backgroundVideo.fitHeightProperty().bind(rootPane.heightProperty());
-                }
-                
-                // Also configure when media is ready to ensure proper centering
-                mediaPlayer.setOnReady(() -> {
-                    System.out.println("Video media is ready");
-                    backgroundVideo.setPreserveRatio(true);
-                    if (rootPane != null) {
-                        backgroundVideo.setFitHeight(rootPane.getHeight());
-                    } else {
-                        backgroundVideo.setFitHeight(600);
-                    }
-                    // Ensure video is visible when ready
-                    if (backgroundVideo != null) {
-                        backgroundVideo.setVisible(true);
-                    }
-                    if (backgroundImage != null) {
-                        backgroundImage.setVisible(false);
-                    }
-                });
-                
-                // Handle errors - fallback to image if video fails
-                mediaPlayer.setOnError(() -> {
-                    System.err.println("Error playing video: " + mediaPlayer.getError());
-                    if (mediaPlayer.getError() != null) {
-                        System.err.println("Error details: " + mediaPlayer.getError().getMessage());
-                    }
-                    fallbackToImage();
-                });
-                
-                // Monitor status to catch any issues
-                mediaPlayer.statusProperty().addListener((obs, oldStatus, newStatus) -> {
-                    System.out.println("MediaPlayer status: " + newStatus);
-                    if (newStatus == javafx.scene.media.MediaPlayer.Status.HALTED) {
-                        System.err.println("MediaPlayer halted - falling back to image");
-                        fallbackToImage();
-                    }
-                });
-                
-                // Start playing
-                mediaPlayer.play();
-            } else {
-                System.err.println("Could not find Retro_Arcade_Tetris_Video_Generation.mp4 in resources");
-                fallbackToImage();
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading background video: " + e.getMessage());
-            e.printStackTrace();
-            fallbackToImage();
-        }
+        // Load video - will retry on failure
+        loadVideo();
         
         // Add hover effects to all buttons
         setupButtonHoverEffect(startButton);
@@ -151,9 +61,7 @@ public class MainMenuController implements Initializable {
         setupButtonHoverEffect(quitButton);
     }
     
-    private void fallbackToImage() {
-        System.out.println("Falling back to static image");
-        // Stop and dispose video player
+    private void disposeMediaPlayer() {
         if (mediaPlayer != null) {
             try {
                 mediaPlayer.stop();
@@ -163,24 +71,137 @@ public class MainMenuController implements Initializable {
             }
             mediaPlayer = null;
         }
-        
-        // Hide video and show image fallback
-        if (backgroundVideo != null) {
-            backgroundVideo.setVisible(false);
-            backgroundVideo.setMediaPlayer(null);
-        }
-        if (backgroundImage != null) {
-            backgroundImage.setVisible(true);
-            try {
-                URL imageUrl = getClass().getClassLoader().getResource("MainMenu.jpeg");
-                if (imageUrl != null) {
-                    Image image = new Image(imageUrl.toExternalForm());
-                    backgroundImage.setImage(image);
-                } else {
-                    System.err.println("Could not find MainMenu.jpeg fallback image");
+    }
+    
+    private void loadVideo() {
+        retryAttempts = 0;
+        loadVideoWithRetry();
+    }
+    
+    private void loadVideoWithRetry() {
+        try {
+            URL videoUrl = getClass().getClassLoader().getResource("Retro_Arcade_Tetris_Video_Generation.mp4");
+            if (videoUrl == null) {
+                System.err.println("Could not find Retro_Arcade_Tetris_Video_Generation.mp4 in resources");
+                retryVideoLoad();
+                return;
+            }
+            
+            String videoPath = videoUrl.toExternalForm();
+            System.out.println("Loading video from: " + videoPath + " (Attempt " + (retryAttempts + 1) + ")");
+            
+            Media media = new Media(videoPath);
+            
+            // Check for media errors during construction
+            media.errorProperty().addListener((obs, oldError, newError) -> {
+                if (newError != null) {
+                    System.err.println("Media error during construction: " + newError.getMessage());
+                    retryVideoLoad();
                 }
-            } catch (Exception e) {
-                System.err.println("Error loading fallback image: " + e.getMessage());
+            });
+            
+            mediaPlayer = new MediaPlayer(media);
+            
+            // Set video to loop indefinitely
+            mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+            
+            // Set video to auto-play
+            mediaPlayer.setAutoPlay(true);
+            
+            // Set mute
+            mediaPlayer.setMute(true);
+            
+            // Set the MediaView to use the MediaPlayer
+            if (backgroundVideo != null) {
+                backgroundVideo.setMediaPlayer(mediaPlayer);
+                
+                // Center the video and preserve aspect ratio (will crop sides if needed)
+                backgroundVideo.setPreserveRatio(true);
+                
+                // Set fit height to window height (600px), width will adjust automatically
+                backgroundVideo.setFitHeight(600);
+                
+                // Bind to StackPane height to maintain fit
+                if (rootPane != null) {
+                    backgroundVideo.fitHeightProperty().bind(rootPane.heightProperty());
+                }
+            }
+            
+            // Configure when media is ready
+            mediaPlayer.setOnReady(() -> {
+                System.out.println("Video media is ready");
+                if (backgroundVideo != null) {
+                    backgroundVideo.setPreserveRatio(true);
+                    if (rootPane != null) {
+                        backgroundVideo.setFitHeight(rootPane.getHeight());
+                    } else {
+                        backgroundVideo.setFitHeight(600);
+                    }
+                    backgroundVideo.setVisible(true);
+                }
+                retryAttempts = 0; // Reset retry counter on success
+            });
+            
+            // Handle errors - retry instead of falling back
+            mediaPlayer.setOnError(() -> {
+                javafx.scene.media.MediaException error = mediaPlayer.getError();
+                if (error != null) {
+                    System.err.println("Error playing video: " + error.getMessage());
+                    System.err.println("Error type: " + (error.getType() != null ? error.getType() : "UNKNOWN"));
+                    retryVideoLoad();
+                }
+            });
+            
+            // Monitor status - only log, don't retry on status changes
+            mediaPlayer.statusProperty().addListener((obs, oldStatus, newStatus) -> {
+                System.out.println("MediaPlayer status: " + oldStatus + " -> " + newStatus);
+                // Only retry if we get HALTED with an actual error
+                if (newStatus == javafx.scene.media.MediaPlayer.Status.HALTED && 
+                    mediaPlayer.getError() != null) {
+                    System.err.println("MediaPlayer halted with error - retrying");
+                    retryVideoLoad();
+                }
+            });
+            
+            // Start playing - use Platform.runLater to ensure scene is fully initialized
+            javafx.application.Platform.runLater(() -> {
+                try {
+                    if (mediaPlayer != null) {
+                        mediaPlayer.play();
+                        System.out.println("Video playback started");
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error starting video playback: " + e.getMessage());
+                    retryVideoLoad();
+                }
+            });
+            
+        } catch (Exception e) {
+            System.err.println("Error loading background video: " + e.getMessage());
+            e.printStackTrace();
+            retryVideoLoad();
+        }
+    }
+    
+    private void retryVideoLoad() {
+        if (retryAttempts < MAX_RETRY_ATTEMPTS) {
+            retryAttempts++;
+            System.out.println("Retrying video load in 500ms... (Attempt " + retryAttempts + "/" + MAX_RETRY_ATTEMPTS + ")");
+            
+            // Dispose current player
+            disposeMediaPlayer();
+            
+            // Retry after a short delay
+            javafx.application.Platform.runLater(() -> {
+                javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(Duration.millis(500));
+                delay.setOnFinished(e -> loadVideoWithRetry());
+                delay.play();
+            });
+        } else {
+            System.err.println("Failed to load video after " + MAX_RETRY_ATTEMPTS + " attempts. Video will not be displayed.");
+            // Keep video visible but it won't play - better than showing nothing
+            if (backgroundVideo != null) {
+                backgroundVideo.setVisible(true);
             }
         }
     }
@@ -240,11 +261,7 @@ public class MainMenuController implements Initializable {
     @FXML
     private void onStartGame(ActionEvent event) {
         // Stop and dispose video player when switching to game
-        if (mediaPlayer != null) {
-            mediaPlayer.stop();
-            mediaPlayer.dispose();
-            mediaPlayer = null;
-        }
+        disposeMediaPlayer();
         
         try {
             // Load gameLayout.fxml
@@ -274,8 +291,7 @@ public class MainMenuController implements Initializable {
 
     @FXML
     private void onQuit(ActionEvent event) {
+        disposeMediaPlayer();
         System.exit(0);
     }
 }
-
-

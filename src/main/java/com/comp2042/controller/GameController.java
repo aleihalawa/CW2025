@@ -125,6 +125,9 @@ public class GameController implements InputEventListener {
      * - refreshes the background view
      */
     private ClearRow lockPieceAndHandleNewBrick() {
+        // Play landing animation for physical impact effect
+        viewGuiController.playLandAnimation();
+        
         // Reset locking state before locking
         ((SimpleBoard) board).setLocking(false);
         

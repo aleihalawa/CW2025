@@ -8,6 +8,7 @@ import com.comp2042.model.DownData;
 import com.comp2042.model.ViewData;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.animation.TranslateTransition;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -689,6 +690,19 @@ public class GuiController implements Initializable {
             stage.setScene(scene);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Plays a board shake animation when a piece lands to create a physical impact effect.
+     */
+    public void playLandAnimation() {
+        if (gameBoard != null) {
+            TranslateTransition shake = new TranslateTransition(Duration.millis(50), gameBoard);
+            shake.setByY(3); // Move down by 3 pixels
+            shake.setAutoReverse(true); // Move back up
+            shake.setCycleCount(2); // Down then Up (2 cycles)
+            shake.play();
         }
     }
 }

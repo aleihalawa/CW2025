@@ -1,22 +1,30 @@
 package com.comp2042.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Immutable result of a line clear operation:
- * number of lines removed, new board matrix, and score bonus.
+ * indices of lines removed, new board matrix, and score bonus.
  */
 public final class ClearRow {
 
-    private final int linesRemoved;
+    private final List<Integer> linesRemoved;
     private final int[][] newMatrix;
     private final int scoreBonus;
 
-    public ClearRow(int linesRemoved, int[][] newMatrix, int scoreBonus) {
-        this.linesRemoved = linesRemoved;
+    public ClearRow(List<Integer> linesRemoved, int[][] newMatrix, int scoreBonus) {
+        this.linesRemoved = new ArrayList<>(linesRemoved);
         this.newMatrix = newMatrix;
         this.scoreBonus = scoreBonus;
     }
 
-    public int getLinesRemoved() {
-        return linesRemoved;
+    public List<Integer> getLinesRemoved() {
+        return new ArrayList<>(linesRemoved);
+    }
+
+    public int getLinesRemovedCount() {
+        return linesRemoved.size();
     }
 
     public int[][] getNewMatrix() {

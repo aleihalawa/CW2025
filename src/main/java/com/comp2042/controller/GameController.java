@@ -132,14 +132,55 @@ public class GameController implements InputEventListener {
         ((SimpleBoard) board).setLocking(false);
         
         board.mergeBrickToBackground();
+        
+        // Get board matrix BEFORE clearRows() so we can animate from the state with full lines
+        int[][] boardBeforeClear = MatrixOperations.copy(board.getBoardMatrix());
+        
         ClearRow clearRow = board.clearRows();
-        applyLineClearScore(clearRow);
 
-        if (board.createNewBrick()) {
-            viewGuiController.gameOver();
+        // Check if lines were cleared
+        if (clearRow.getLinesRemovedCount() > 0) {
+            // Hide falling brick and ghost panels before animation to prevent visual conflicts
+            // The piece is now merged into background, so it should only appear in displayMatrix
+            viewGuiController.hideFallingPieces();
+            
+            // Refresh background with the PRE-CLEARED state so animation can show the transition
+            // This ensures all blocks (including the piece that just landed) are visible before animation
+            viewGuiController.refreshGameBackground(boardBeforeClear);
+            
+            // Lines cleared - animate the clear, then update game state
+            viewGuiController.animateLineClear(clearRow.getLinesRemoved(), () -> {
+                // Callback executed after animation completes
+                applyLineClearScore(clearRow);
+                
+                // Refresh background with the FINAL state (after clearRows) to match board state
+                viewGuiController.refreshGameBackground(board.getBoardMatrix());
+                
+                // Then create new brick and check for game over
+                boolean gameOver = board.createNewBrick();
+                if (gameOver) {
+                    viewGuiController.gameOver();
+                } else {
+                    // Show falling pieces again and refresh brick view to show the new brick
+                    viewGuiController.showFallingPieces();
+                    viewGuiController.refreshBrick(board.getViewData());
+                }
+            });
+        } else {
+            // No lines cleared - proceed synchronously
+            applyLineClearScore(clearRow);
+            
+            viewGuiController.refreshGameBackground(board.getBoardMatrix());
+            
+            boolean gameOver = board.createNewBrick();
+            if (gameOver) {
+                viewGuiController.gameOver();
+            } else {
+                // Refresh brick view to show the new brick immediately
+                viewGuiController.refreshBrick(board.getViewData());
+            }
         }
 
-        viewGuiController.refreshGameBackground(board.getBoardMatrix());
         return clearRow;
     }
 
@@ -147,7 +188,7 @@ public class GameController implements InputEventListener {
      * Applies score bonus based on how many lines have been removed.
      */
     private void applyLineClearScore(ClearRow clearRow) {
-        if (clearRow != null && clearRow.getLinesRemoved() > 0) {
+        if (clearRow != null && clearRow.getLinesRemovedCount() > 0) {
             board.getScore().add(clearRow.getScoreBonus());
         }
     }

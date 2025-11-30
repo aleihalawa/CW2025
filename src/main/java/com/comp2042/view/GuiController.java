@@ -419,6 +419,13 @@ public class GuiController implements Initializable {
                 }
             }
             
+            // Update dimming indicator based on locking state
+            if (brick.isLocking()) {
+                brickPanel.setOpacity(0.4); // Dim the block to show it's waiting
+            } else {
+                brickPanel.setOpacity(1.0); // Normal brightness
+            }
+            
             // Update brick rectangles
             for (int i = 0; i < brick.getBrickData().length; i++) {
                 for (int j = 0; j < brick.getBrickData()[i].length; j++) {

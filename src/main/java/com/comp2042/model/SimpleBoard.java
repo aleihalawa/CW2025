@@ -23,6 +23,7 @@ public class SimpleBoard implements Board {
     private final LineClearService lineClearService = new LineClearService();
     private static final int SPAWN_X = 4;
     private static final int SPAWN_Y = 0;
+    private boolean isLocking = false;
 
     public SimpleBoard(int width, int height) {
         this.width = width;
@@ -95,6 +96,7 @@ public class SimpleBoard implements Board {
 
     @Override
     public boolean createNewBrick() {
+        isLocking = false;
         Brick currentBrick = brickGenerator.getBrick();
         brickRotator.setBrick(currentBrick);
         currentOffset = new Point(SPAWN_X, SPAWN_Y);
@@ -127,10 +129,14 @@ public class SimpleBoard implements Board {
         }
     }
 
+    public void setLocking(boolean locking) {
+        this.isLocking = locking;
+    }
+
     @Override
     public ViewData getViewData() {
         int ghostY = calculateGhostY();
-        return new ViewData(brickRotator.getCurrentShape(), (int) currentOffset.getX(), (int) currentOffset.getY(), ghostY, brickGenerator.getNextBrick().getShapeMatrix().get(0));
+        return new ViewData(brickRotator.getCurrentShape(), (int) currentOffset.getX(), (int) currentOffset.getY(), ghostY, brickGenerator.getNextBrick().getShapeMatrix().get(0), this.isLocking);
     }
 
     @Override
@@ -154,6 +160,7 @@ public class SimpleBoard implements Board {
 
     @Override
     public void newGame() {
+        isLocking = false;
         currentGameMatrix = new int[width][height];
         score.reset();
         createNewBrick();

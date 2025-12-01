@@ -22,7 +22,7 @@ public class GameController implements InputEventListener {
         board.createNewBrick();
         viewGuiController.setEventListener(this);
         viewGuiController.initGameView(board.getBoardMatrix(), board.getViewData());
-        viewGuiController.bindScore(board.getScore().scoreProperty());
+        viewGuiController.bindScore(board.getScore());
         
         // Initialize lock timer: 0.5s delay before locking
         lockTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> lockPieceAndHandleNewBrick()));
@@ -153,6 +153,14 @@ public class GameController implements InputEventListener {
                 // Callback executed after animation completes
                 applyLineClearScore(clearRow);
                 
+                // Update lines count and level
+                board.getScore().addLines(clearRow.getLinesRemovedCount());
+                
+                // Update game speed based on new level
+                int currentLevel = board.getScore().levelProperty().get();
+                double newSpeed = calculateSpeed(currentLevel);
+                viewGuiController.updateGameSpeed(newSpeed);
+                
                 // Refresh background with the FINAL state (after clearRows) to match board state
                 viewGuiController.refreshGameBackground(board.getBoardMatrix());
                 
@@ -182,6 +190,20 @@ public class GameController implements InputEventListener {
         }
 
         return clearRow;
+    }
+
+    /**
+     * Calculates the game speed (delay in milliseconds) based on the current level.
+     * Formula: Start with 400ms, subtract 35ms for every level above 1.
+     * Clamped to minimum 75ms to keep it playable.
+     * @param level The current game level
+     * @return The delay in milliseconds for the next automatic drop
+     */
+    private double calculateSpeed(int level) {
+        // Start with 400ms, subtract 35ms for every level above 1
+        double speed = 400.0 - (35.0 * (level - 1));
+        // Clamp to minimum 75ms
+        return Math.max(75.0, speed);
     }
 
     /**

@@ -5,6 +5,7 @@ import com.comp2042.events.EventSource;
 import com.comp2042.events.EventType;
 import com.comp2042.events.MoveEvent;
 import com.comp2042.model.DownData;
+import com.comp2042.model.Score;
 import com.comp2042.model.ViewData;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
@@ -334,6 +335,31 @@ public class GuiController implements Initializable {
         refreshNextBrick(brick.getNextBricks());
     }
 
+    /**
+     * Updates the game speed by changing the timeline delay.
+     * @param delayMillis The new delay in milliseconds between automatic drops
+     */
+    public void updateGameSpeed(double delayMillis) {
+        if (timeLine != null) {
+            // Stop the existing timeline
+            timeLine.stop();
+            
+            // Clear old keyframes
+            timeLine.getKeyFrames().clear();
+            
+            // Create a new KeyFrame with the new duration and the same event handler
+            timeLine.getKeyFrames().add(new KeyFrame(
+                Duration.millis(delayMillis),
+                ae -> moveDown(new MoveEvent(EventType.DOWN, EventSource.THREAD))
+            ));
+            
+            // Restart the timeline if game is not paused or over
+            if (isPause.getValue() == Boolean.FALSE && isGameOver.getValue() == Boolean.FALSE) {
+                timeLine.play();
+            }
+        }
+    }
+
     private Paint getFillColor(int i) {
         Paint returnPaint;
         switch (i) {
@@ -587,10 +613,25 @@ public class GuiController implements Initializable {
         this.eventListener = eventListener;
     }
 
-    public void bindScore(IntegerProperty integerProperty) {
-        if (scoreLabel != null && integerProperty != null) {
-            scoreLabel.textProperty().bind(integerProperty.asString());
-            scoreProperty = integerProperty;
+    public void bindScore(Score score) {
+        if (score == null) {
+            return;
+        }
+        
+        // Bind score label
+        if (scoreLabel != null) {
+            scoreLabel.textProperty().bind(score.scoreProperty().asString());
+            scoreProperty = score.scoreProperty();
+        }
+        
+        // Bind level label
+        if (levelLabel != null) {
+            levelLabel.textProperty().bind(score.levelProperty().asString());
+        }
+        
+        // Bind lines label
+        if (linesLabel != null) {
+            linesLabel.textProperty().bind(score.linesProperty().asString());
         }
     }
 

@@ -16,6 +16,10 @@ public class GameController implements InputEventListener {
     private final GuiController viewGuiController;
 
     private final Timeline lockTimer;
+    
+    private boolean hasBeatenHighScore = false;
+    private int currentHighScore = 0;
+    private final com.comp2042.model.HighScoreManager highScoreManager = new com.comp2042.model.HighScoreManager();
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -23,6 +27,9 @@ public class GameController implements InputEventListener {
         viewGuiController.setEventListener(this);
         viewGuiController.initGameView(board.getBoardMatrix(), board.getViewData());
         viewGuiController.bindScore(board.getScore());
+        
+        // Initialize high score
+        currentHighScore = highScoreManager.loadHighScore();
         
         // Initialize lock timer: 0.5s delay before locking
         lockTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> lockPieceAndHandleNewBrick()));
@@ -103,6 +110,8 @@ public class GameController implements InputEventListener {
         if (dropCount > 0 && event.getEventSource() == EventSource.USER) {
             int hardDropScore = dropCount * 2;
             board.getScore().add(hardDropScore);
+            // Check for new high score after score update
+            checkHighScore();
         }
         
         // Lock the piece immediately on hard drop (no delay)
@@ -113,8 +122,34 @@ public class GameController implements InputEventListener {
 
     @Override
     public void createNewGame() {
+        // Reset the flag so the next game can trigger the alert again
+        hasBeatenHighScore = false;
+        // Reload the high score to be safe
+        currentHighScore = highScoreManager.loadHighScore();
+        
         board.newGame();
         viewGuiController.refreshGameBackground(board.getBoardMatrix());
+    }
+    
+    /**
+     * Checks if the current score has beaten the high score.
+     * Only triggers once per game session.
+     */
+    private void checkHighScore() {
+        int currentScore = board.getScore().scoreProperty().get();
+        // Crucial check: !hasBeatenHighScore ensures this block runs ONLY ONCE per game
+        if (!hasBeatenHighScore && currentScore > currentHighScore) {
+            hasBeatenHighScore = true; // Set the flag immediately so it doesn't fire again
+            
+            viewGuiController.showHighScoreNotification();
+            
+            // Save the new high score
+            highScoreManager.saveHighScore(currentScore);
+            currentHighScore = currentScore; // Update the threshold
+            
+            // Optional: Logging
+            System.out.println("High Score notification finished");
+        }
     }
     /**
      * Handles the situation when a falling piece can no longer move down:
@@ -212,6 +247,8 @@ public class GameController implements InputEventListener {
     private void applyLineClearScore(ClearRow clearRow) {
         if (clearRow != null && clearRow.getLinesRemovedCount() > 0) {
             board.getScore().add(clearRow.getScoreBonus());
+            // Check for new high score after score update
+            checkHighScore();
         }
     }
 
@@ -221,6 +258,8 @@ public class GameController implements InputEventListener {
     private void rewardManualDrop(MoveEvent event) {
         if (event.getEventSource() == EventSource.USER) {
             board.getScore().add(1);
+            // Check for new high score after score update
+            checkHighScore();
         }
     }
 }

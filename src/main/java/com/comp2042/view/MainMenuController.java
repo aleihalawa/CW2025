@@ -1,6 +1,7 @@
 package com.comp2042.view;
 
 import com.comp2042.controller.GameController;
+import com.comp2042.model.HighScoreManager;
 import javafx.animation.ScaleTransition;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -10,6 +11,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.effect.Glow;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
@@ -37,9 +39,13 @@ public class MainMenuController implements Initializable {
     @FXML
     private Button quitButton;
     
+    @FXML
+    private Label highScoreLabel;
+    
     private MediaPlayer mediaPlayer;
     private static final int MAX_RETRY_ATTEMPTS = 3;
     private int retryAttempts = 0;
+    private final HighScoreManager highScoreManager = new HighScoreManager();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -55,10 +61,23 @@ public class MainMenuController implements Initializable {
         // Load video - will retry on failure
         loadVideo();
         
+        // Load and display high score
+        loadHighScore();
+        
         // Add hover effects to all buttons
         setupButtonHoverEffect(startButton);
         setupButtonHoverEffect(settingsButton);
         setupButtonHoverEffect(quitButton);
+    }
+    
+    /**
+     * Loads the high score from file and updates the label.
+     */
+    private void loadHighScore() {
+        if (highScoreLabel != null) {
+            int highScore = highScoreManager.loadHighScore();
+            highScoreLabel.setText("HIGH SCORE: " + highScore);
+        }
     }
     
     private void disposeMediaPlayer() {

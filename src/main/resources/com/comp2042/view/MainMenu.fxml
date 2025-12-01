@@ -29,4 +29,12 @@
         <Button fx:id="quitButton" text="QUIT" onAction="#onQuit" styleClass="menu-button"/>
     </VBox>
     
+    <!-- High Score Label - positioned at bottom left -->
+    <Label fx:id="highScoreLabel" text="HIGH SCORE: 0" styleClass="high-score-label" 
+           StackPane.alignment="BOTTOM_LEFT">
+        <StackPane.margin>
+            <Insets bottom="20" left="20"/>
+        </StackPane.margin>
+    </Label>
+    
 </StackPane>

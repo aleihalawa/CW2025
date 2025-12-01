@@ -10,6 +10,7 @@ import com.comp2042.model.ViewData;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.ParallelTransition;
+import javafx.animation.ScaleTransition;
 import javafx.animation.SequentialTransition;
 import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
@@ -36,6 +37,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -132,6 +134,8 @@ public class GuiController implements Initializable {
     private final BooleanProperty isGameOver = new SimpleBooleanProperty();
     
     private boolean isAnimating = false;
+    
+    private boolean isShowingHighScoreNotification = false;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -634,6 +638,128 @@ public class GuiController implements Initializable {
             linesLabel.textProperty().bind(score.linesProperty().asString());
         }
     }
+    
+    /**
+     * Shows the "NEW HIGH SCORE!" notification mid-game.
+     * Pauses the game, shows the notification, then resumes after animation.
+     */
+    public void showHighScoreNotification() {
+        if (isShowingHighScoreNotification) {
+            return;
+        }
+        
+        isShowingHighScoreNotification = true;
+        
+        // Pause the game timeline
+        final boolean[] wasPlaying = {false};
+        if (timeLine != null && timeLine.getStatus() == javafx.animation.Animation.Status.RUNNING) {
+            wasPlaying[0] = true;
+            timeLine.pause();
+        }
+        
+        // Get the root StackPane from the scene
+        final StackPane[] gameRootRef = {null};
+        if (gamePanel != null && gamePanel.getScene() != null) {
+            javafx.scene.Node root = gamePanel.getScene().getRoot();
+            if (root instanceof StackPane) {
+                gameRootRef[0] = (StackPane) root;
+            }
+        }
+        
+        if (gameRootRef[0] == null) {
+            // Fallback: can't find root, just resume
+            isShowingHighScoreNotification = false;
+            if (wasPlaying[0] && timeLine != null && 
+                isPause.getValue() == Boolean.FALSE && 
+                isGameOver.getValue() == Boolean.FALSE) {
+                timeLine.play();
+            }
+            return;
+        }
+        
+        final StackPane gameRoot = gameRootRef[0];
+        
+        // Create dimmer - separate from label
+        Rectangle dimmer = new Rectangle();
+        dimmer.setFill(Color.BLACK);
+        dimmer.setOpacity(0.0);
+        // Bind width and height to gameRoot
+        dimmer.widthProperty().bind(gameRoot.widthProperty());
+        dimmer.heightProperty().bind(gameRoot.heightProperty());
+        
+        // Create label - separate from dimmer
+        Label label = new Label("NEW HIGH SCORE!");
+        label.setTextFill(Color.web("#FFD700")); // Gold text
+        label.setStyle("-fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', 'Arial', sans-serif; " +
+                      "-fx-font-size: 36px; " +
+                      "-fx-font-weight: bold;");
+        // Add glow effect
+        javafx.scene.effect.Glow glow = new javafx.scene.effect.Glow(0.8);
+        label.setEffect(glow);
+        // Center the label
+        StackPane.setAlignment(label, javafx.geometry.Pos.CENTER);
+        // Start with scale 0
+        label.setScaleX(0.0);
+        label.setScaleY(0.0);
+        
+        // Add both to root individually (NOT in a shared Group)
+        gameRoot.getChildren().addAll(dimmer, label);
+        // Bring to front
+        dimmer.toFront();
+        label.toFront();
+        
+        // Appear Phase (Parallel)
+        FadeTransition dimmerFadeIn = new FadeTransition(Duration.millis(300), dimmer);
+        dimmerFadeIn.setFromValue(0.0);
+        dimmerFadeIn.setToValue(0.7);
+        
+        ScaleTransition labelScaleIn = new ScaleTransition(Duration.millis(500), label);
+        labelScaleIn.setFromX(0.0);
+        labelScaleIn.setFromY(0.0);
+        labelScaleIn.setToX(1.0);
+        labelScaleIn.setToY(1.0);
+        // Use overshoot interpolator if available, otherwise ease out
+        try {
+            labelScaleIn.setInterpolator(javafx.animation.Interpolator.SPLINE(0.34, 1.56, 0.64, 1)); // Overshoot-like
+        } catch (Exception e) {
+            labelScaleIn.setInterpolator(javafx.animation.Interpolator.EASE_OUT);
+        }
+        
+        ParallelTransition appearTransition = new ParallelTransition(dimmerFadeIn, labelScaleIn);
+        
+        // Hold Phase
+        javafx.animation.PauseTransition hold = new javafx.animation.PauseTransition(Duration.millis(1500));
+        
+        // Disappear Phase (Parallel)
+        FadeTransition dimmerFadeOut = new FadeTransition(Duration.millis(300), dimmer);
+        dimmerFadeOut.setFromValue(0.7);
+        dimmerFadeOut.setToValue(0.0);
+        
+        FadeTransition labelFadeOut = new FadeTransition(Duration.millis(300), label);
+        labelFadeOut.setFromValue(1.0);
+        labelFadeOut.setToValue(0.0);
+        
+        ParallelTransition disappearTransition = new ParallelTransition(dimmerFadeOut, labelFadeOut);
+        
+        // Sequence: Appear -> Hold -> Disappear
+        SequentialTransition sequence = new SequentialTransition(appearTransition, hold, disappearTransition);
+        sequence.setOnFinished(e -> {
+            // Cleanup: Remove dimmer and label from gameRoot
+            gameRoot.getChildren().removeAll(dimmer, label);
+            
+            // Resume timeline
+            if (wasPlaying[0] && timeLine != null && 
+                isPause.getValue() == Boolean.FALSE && 
+                isGameOver.getValue() == Boolean.FALSE) {
+                timeLine.play();
+            }
+            
+            // Reset flag and run callback
+            isShowingHighScoreNotification = false;
+        });
+        
+        sequence.play();
+    }
 
     public void gameOver() {
         timeLine.stop();
@@ -648,6 +774,12 @@ public class GuiController implements Initializable {
             } catch (NumberFormatException e) {
                 finalScore = 0;
             }
+        }
+        
+        // Save high score if this is a new record
+        com.comp2042.model.HighScoreManager highScoreManager = new com.comp2042.model.HighScoreManager();
+        if (highScoreManager.isNewHighScore(finalScore)) {
+            highScoreManager.saveHighScore(finalScore);
         }
         
         // Setup button handlers

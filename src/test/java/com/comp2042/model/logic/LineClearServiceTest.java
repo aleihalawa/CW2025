@@ -12,7 +12,7 @@ class LineClearServiceTest {
     void clearFullLines_doesNothing_whenBoardIsEmpty() {
         int[][] matrix = new int[5][5];
         ClearRow result = lineClearService.clearFullLines(matrix);
-        assertEquals(0, result.getLinesRemoved());
+        assertEquals(0, result.getLinesRemovedCount());
         assertEquals(0, result.getScoreBonus());
     }
 
@@ -22,7 +22,7 @@ class LineClearServiceTest {
         for (int x = 0; x < 5; x++) matrix[4][x] = 1; // Fill bottom row
         ClearRow result = lineClearService.clearFullLines(matrix);
         
-        assertEquals(1, result.getLinesRemoved());
+        assertEquals(1, result.getLinesRemovedCount());
         assertEquals(50, result.getScoreBonus());
         assertEquals(0, result.getNewMatrix()[4][0], "Bottom row should be cleared");
     }
@@ -36,7 +36,7 @@ class LineClearServiceTest {
         }
         ClearRow result = lineClearService.clearFullLines(matrix);
         
-        assertEquals(2, result.getLinesRemoved());
+        assertEquals(2, result.getLinesRemovedCount());
         assertEquals(200, result.getScoreBonus());
     }
 }

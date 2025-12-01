@@ -6,7 +6,10 @@ import com.comp2042.events.EventType;
 import com.comp2042.events.MoveEvent;
 import com.comp2042.model.DownData;
 import com.comp2042.model.ViewData;
+import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
+import javafx.animation.ParallelTransition;
+import javafx.animation.SequentialTransition;
 import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
 import javafx.beans.property.BooleanProperty;
@@ -42,6 +45,7 @@ import javafx.scene.text.Font;
 import javafx.util.Duration;
 
 import java.net.URL;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class GuiController implements Initializable {
@@ -119,6 +123,8 @@ public class GuiController implements Initializable {
     private final BooleanProperty isPause = new SimpleBooleanProperty();
 
     private final BooleanProperty isGameOver = new SimpleBooleanProperty();
+    
+    private boolean isAnimating = false;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -213,7 +219,7 @@ public class GuiController implements Initializable {
                     }
                     if (keyEvent.getCode() == KeyCode.SPACE) {
                         DownData downData = eventListener.onSpaceEvent(new MoveEvent(EventType.DOWN, EventSource.USER));
-                        if (downData.getClearRow() != null && downData.getClearRow().getLinesRemoved() > 0) {
+                        if (downData.getClearRow() != null && downData.getClearRow().getLinesRemovedCount() > 0) {
                             NotificationPanel notificationPanel = new NotificationPanel("+" + downData.getClearRow().getScoreBonus());
                             groupNotification.getChildren().add(notificationPanel);
                             notificationPanel.showScore(groupNotification.getChildren());
@@ -391,7 +397,7 @@ public class GuiController implements Initializable {
         }
     }
 
-    private void refreshBrick(ViewData brick) {
+    public void refreshBrick(ViewData brick) {
         if (isPause.getValue() == Boolean.FALSE) {
             // 1. Get the exact screen position of the Board Grid (gamePanel)
             if (gamePanel.getScene() != null && brickPanel.getParent() != null) {
@@ -465,7 +471,12 @@ public class GuiController implements Initializable {
     public void refreshGameBackground(int[][] board) {
         for (int i = 2; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
-                setRectangleData(board[i][j], displayMatrix[i][j]);
+                Rectangle rectangle = displayMatrix[i][j];
+                // Reset visual properties modified by animations
+                rectangle.setOpacity(1.0);
+                rectangle.setTranslateY(0);
+                // Set the color
+                setRectangleData(board[i][j], rectangle);
             }
         }
     }
@@ -479,7 +490,7 @@ public class GuiController implements Initializable {
     private void moveDown(MoveEvent event) {
         if (isPause.getValue() == Boolean.FALSE) {
             DownData downData = eventListener.onDownEvent(event);
-            if (downData.getClearRow() != null && downData.getClearRow().getLinesRemoved() > 0) {
+            if (downData.getClearRow() != null && downData.getClearRow().getLinesRemovedCount() > 0) {
                 NotificationPanel notificationPanel = new NotificationPanel("+" + downData.getClearRow().getScoreBonus());
                 groupNotification.getChildren().add(notificationPanel);
                 notificationPanel.showScore(groupNotification.getChildren());
@@ -704,5 +715,145 @@ public class GuiController implements Initializable {
             shake.setCycleCount(2); // Down then Up (2 cycles)
             shake.play();
         }
+    }
+
+    /**
+     * Hides the falling brick and ghost panels (used before line clear animation).
+     */
+    public void hideFallingPieces() {
+        if (brickPanel != null) {
+            brickPanel.setVisible(false);
+        }
+        if (ghostPanel != null) {
+            ghostPanel.setVisible(false);
+        }
+    }
+
+    /**
+     * Shows the falling brick and ghost panels (used after line clear animation).
+     */
+    public void showFallingPieces() {
+        if (brickPanel != null) {
+            brickPanel.setVisible(true);
+        }
+        if (ghostPanel != null) {
+            ghostPanel.setVisible(true);
+        }
+    }
+
+    /**
+     * Animates the line clear sequence: fade out cleared rows, then slide down blocks above.
+     * 
+     * @param clearedRows List of row indices that were cleared (board matrix indices)
+     * @param onFinished Callback to execute when animation completes
+     */
+    public void animateLineClear(List<Integer> clearedRows, Runnable onFinished) {
+        // Prevent multiple simultaneous animations
+        if (isAnimating) {
+            if (onFinished != null) {
+                onFinished.run();
+            }
+            return;
+        }
+        
+        // Pause the automatic timeline during animation to prevent interference
+        if (timeLine != null) {
+            timeLine.pause();
+        }
+        
+        if (clearedRows == null || clearedRows.isEmpty()) {
+            // Resume timeline if no animation needed
+            if (timeLine != null && isPause.getValue() == Boolean.FALSE && isGameOver.getValue() == Boolean.FALSE) {
+                timeLine.play();
+            }
+            if (onFinished != null) {
+                onFinished.run();
+            }
+            return;
+        }
+        
+        isAnimating = true;
+
+        // Get board dimensions
+        int boardHeight = displayMatrix.length;
+        int boardWidth = displayMatrix[0].length;
+        
+        // Find the lowest cleared row index
+        int lowestClearedRow = clearedRows.stream().mapToInt(Integer::intValue).max().orElse(-1);
+        if (lowestClearedRow < 0) {
+            if (onFinished != null) {
+                onFinished.run();
+            }
+            return;
+        }
+
+        // Step 1: Vanish - Fade out all blocks in cleared rows
+        ParallelTransition vanishTransition = new ParallelTransition();
+        for (Integer rowIndex : clearedRows) {
+            if (rowIndex >= 2 && rowIndex < boardHeight) { // Only animate visible rows (starting from index 2)
+                for (int col = 0; col < boardWidth; col++) {
+                    Rectangle rectangle = displayMatrix[rowIndex][col];
+                    if (rectangle != null) {
+                        FadeTransition fade = new FadeTransition(Duration.millis(300), rectangle);
+                        fade.setFromValue(1.0);
+                        fade.setToValue(0.0);
+                        vanishTransition.getChildren().add(fade);
+                    }
+                }
+            }
+        }
+
+        // Step 2: Gravity - Slide down blocks above cleared rows
+        ParallelTransition gravityTransition = new ParallelTransition();
+        for (int i = 2; i < boardHeight; i++) {
+            // Only animate rows that are above the lowest cleared row and not themselves cleared
+            if (i < lowestClearedRow && !clearedRows.contains(i)) {
+                // Calculate how many cleared rows are below this row
+                int shiftCount = 0;
+                for (Integer clearedRow : clearedRows) {
+                    if (clearedRow > i) {
+                        shiftCount++;
+                    }
+                }
+
+                if (shiftCount > 0) {
+                    // Animate all blocks in this row down
+                    for (int col = 0; col < boardWidth; col++) {
+                        Rectangle rectangle = displayMatrix[i][col];
+                        if (rectangle != null) {
+                            TranslateTransition translate = new TranslateTransition(Duration.millis(300), rectangle);
+                            translate.setByY(shiftCount * (BRICK_SIZE + 1)); // +1 for grid gap
+                            gravityTransition.getChildren().add(translate);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Create sequential transition: vanish first, then gravity
+        SequentialTransition sequence = new SequentialTransition();
+        sequence.getChildren().addAll(vanishTransition, gravityTransition);
+        
+        // Execute callback when animation completes (on JavaFX application thread)
+        sequence.setOnFinished(e -> {
+            isAnimating = false;
+            if (onFinished != null) {
+                javafx.application.Platform.runLater(() -> {
+                    onFinished.run();
+                    // Resume the automatic timeline after animation completes
+                    if (timeLine != null && isPause.getValue() == Boolean.FALSE && isGameOver.getValue() == Boolean.FALSE) {
+                        timeLine.play();
+                    }
+                });
+            } else {
+                // Resume timeline even if no callback
+                if (timeLine != null && isPause.getValue() == Boolean.FALSE && isGameOver.getValue() == Boolean.FALSE) {
+                    timeLine.play();
+                }
+            }
+        });
+
+        // Play the animation
+        sequence.play();
     }
 }

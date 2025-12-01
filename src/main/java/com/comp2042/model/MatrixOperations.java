@@ -89,7 +89,7 @@ public final class MatrixOperations {
             }
         }
         int scoreBonus = 50 * clearedRows.size() * clearedRows.size();
-        return new ClearRow(clearedRows.size(), tmp, scoreBonus);
+        return new ClearRow(clearedRows, tmp, scoreBonus);
     }
 
     public static List<int[][]> deepCopyList(List<int[][]> list){

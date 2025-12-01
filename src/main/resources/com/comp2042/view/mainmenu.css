@@ -24,10 +24,10 @@
 }
 
 .high-score-label {
-    -fx-text-fill: #00ffff;
-    -fx-font-family: "Arial Black", "Arial", sans-serif;
-    -fx-font-size: 16px;
+    -fx-text-fill: rgba(255, 255, 255, 0.7);
+    -fx-font-family: "Public Pixel", "Impact", "Arial Black", "Arial", sans-serif;
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
-    -fx-effect: dropshadow(gaussian, #00ffff, 8, 0.6, 0, 0);
+    -fx-letter-spacing: 0.5px;
 }
 

@@ -650,6 +650,12 @@ public class GuiController implements Initializable {
             }
         }
         
+        // Save high score if this is a new record
+        com.comp2042.model.HighScoreManager highScoreManager = new com.comp2042.model.HighScoreManager();
+        if (highScoreManager.isNewHighScore(finalScore)) {
+            highScoreManager.saveHighScore(finalScore);
+        }
+        
         // Setup button handlers
         gameOverPanel.setOnRestart(e -> {
             newGame(e);

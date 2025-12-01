@@ -24,6 +24,7 @@ public class GameController implements InputEventListener {
     private final com.comp2042.model.HighScoreManager highScoreManager = new com.comp2042.model.HighScoreManager();
     
     private MediaPlayer backgroundMusic;
+    private MediaPlayer lineClearSound;
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -41,6 +42,42 @@ public class GameController implements InputEventListener {
         
         // Load and play background music
         loadBackgroundMusic();
+        
+        // Load line clear sound effect
+        loadLineClearSound();
+    }
+    
+    /**
+     * Loads the line clear sound effect.
+     */
+    private void loadLineClearSound() {
+        try {
+            java.net.URL soundUrl = getClass().getClassLoader().getResource("tetris-line-clear-sound.mp3");
+            if (soundUrl != null) {
+                String soundPath = soundUrl.toExternalForm();
+                Media media = new Media(soundPath);
+                lineClearSound = new MediaPlayer(media);
+                
+                // Set volume higher than background music to be more noticeable
+                lineClearSound.setVolume(0.7); // 70% volume
+            } else {
+                System.err.println("Could not find tetris-line-clear-sound.mp3 in resources");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading line clear sound: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Plays the line clear sound effect.
+     */
+    private void playLineClearSound() {
+        if (lineClearSound != null) {
+            // Reset to beginning if already playing
+            lineClearSound.stop();
+            lineClearSound.play();
+        }
     }
     
     /**
@@ -83,6 +120,17 @@ public class GameController implements InputEventListener {
                 System.err.println("Error disposing background music: " + e.getMessage());
             }
             backgroundMusic = null;
+        }
+        
+        // Also dispose line clear sound
+        if (lineClearSound != null) {
+            try {
+                lineClearSound.stop();
+                lineClearSound.dispose();
+            } catch (Exception e) {
+                System.err.println("Error disposing line clear sound: " + e.getMessage());
+            }
+            lineClearSound = null;
         }
     }
 
@@ -225,6 +273,9 @@ public class GameController implements InputEventListener {
 
         // Check if lines were cleared
         if (clearRow.getLinesRemovedCount() > 0) {
+            // Play line clear sound effect (overlaps with background music)
+            playLineClearSound();
+            
             // Hide falling brick and ghost panels before animation to prevent visual conflicts
             // The piece is now merged into background, so it should only appear in displayMatrix
             viewGuiController.hideFallingPieces();

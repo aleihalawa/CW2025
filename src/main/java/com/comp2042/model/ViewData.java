@@ -1,4 +1,8 @@
 package com.comp2042.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Immutable snapshot of the data the view needs to render
  * the current falling brick and the next brick preview.
@@ -9,15 +13,19 @@ public final class ViewData {
     private final int xPosition;
     private final int yPosition;
     private final int ghostY;
-    private final int[][] nextBrickData;
+    private final List<int[][]> nextBricks;
     private final boolean isLocking;
 
-    public ViewData(int[][] brickData, int xPosition, int yPosition, int ghostY, int[][] nextBrickData, boolean isLocking) {
+    public ViewData(int[][] brickData, int xPosition, int yPosition, int ghostY, List<int[][]> nextBricks, boolean isLocking) {
         this.brickData = brickData;
         this.xPosition = xPosition;
         this.yPosition = yPosition;
         this.ghostY = ghostY;
-        this.nextBrickData = nextBrickData;
+        // Create defensive copy
+        this.nextBricks = new ArrayList<>();
+        for (int[][] brick : nextBricks) {
+            this.nextBricks.add(MatrixOperations.copy(brick));
+        }
         this.isLocking = isLocking;
     }
 
@@ -37,8 +45,13 @@ public final class ViewData {
         return ghostY;
     }
 
-    public int[][] getNextBrickData() {
-        return MatrixOperations.copy(nextBrickData);
+    public List<int[][]> getNextBricks() {
+        // Return defensive copy
+        List<int[][]> result = new ArrayList<>();
+        for (int[][] brick : nextBricks) {
+            result.add(MatrixOperations.copy(brick));
+        }
+        return result;
     }
 
     public boolean isLocking() {

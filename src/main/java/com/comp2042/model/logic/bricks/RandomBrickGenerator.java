@@ -21,13 +21,16 @@ public class RandomBrickGenerator implements BrickGenerator {
         brickList.add(new SBrick());
         brickList.add(new TBrick());
         brickList.add(new ZBrick());
-        nextBricks.add(brickList.get(ThreadLocalRandom.current().nextInt(brickList.size())));
-        nextBricks.add(brickList.get(ThreadLocalRandom.current().nextInt(brickList.size())));
+        // Initialize with at least 4 bricks (1 current + 3 preview)
+        for (int i = 0; i < 4; i++) {
+            nextBricks.add(brickList.get(ThreadLocalRandom.current().nextInt(brickList.size())));
+        }
     }
 
     @Override
     public Brick getBrick() {
-        if (nextBricks.size() <= 1) {
+        // Ensure we always have at least 4 bricks in the buffer
+        while (nextBricks.size() < 4) {
             nextBricks.add(brickList.get(ThreadLocalRandom.current().nextInt(brickList.size())));
         }
         return nextBricks.poll();
@@ -36,5 +39,23 @@ public class RandomBrickGenerator implements BrickGenerator {
     @Override
     public Brick getNextBrick() {
         return nextBricks.peek();
+    }
+
+    @Override
+    public List<Brick> getNextBricks(int count) {
+        // Ensure we have enough bricks in the buffer
+        while (nextBricks.size() < count) {
+            nextBricks.add(brickList.get(ThreadLocalRandom.current().nextInt(brickList.size())));
+        }
+        
+        // Return the next count bricks without removing them (peek)
+        List<Brick> result = new ArrayList<>();
+        int index = 0;
+        for (Brick brick : nextBricks) {
+            if (index >= count) break;
+            result.add(brick);
+            index++;
+        }
+        return result;
     }
 }

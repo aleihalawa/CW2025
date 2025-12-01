@@ -7,8 +7,9 @@ import com.comp2042.model.logic.bricks.RandomBrickGenerator;
 import com.comp2042.model.logic.CollisionService;
 import com.comp2042.model.logic.LineClearService;
 
-
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SimpleBoard implements Board {
 
@@ -136,7 +137,14 @@ public class SimpleBoard implements Board {
     @Override
     public ViewData getViewData() {
         int ghostY = calculateGhostY();
-        return new ViewData(brickRotator.getCurrentShape(), (int) currentOffset.getX(), (int) currentOffset.getY(), ghostY, brickGenerator.getNextBrick().getShapeMatrix().get(0), this.isLocking);
+        // Get next 3 bricks
+        List<Brick> nextBricks = brickGenerator.getNextBricks(3);
+        // Convert List<Brick> to List<int[][]> (taking the first rotation of each brick)
+        List<int[][]> nextBrickShapes = new ArrayList<>();
+        for (Brick brick : nextBricks) {
+            nextBrickShapes.add(brick.getShapeMatrix().get(0));
+        }
+        return new ViewData(brickRotator.getCurrentShape(), (int) currentOffset.getX(), (int) currentOffset.getY(), ghostY, nextBrickShapes, this.isLocking);
     }
 
     @Override

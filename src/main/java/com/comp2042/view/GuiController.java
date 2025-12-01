@@ -45,6 +45,7 @@ import javafx.scene.text.Font;
 import javafx.util.Duration;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -69,6 +70,9 @@ public class GuiController implements Initializable {
 
     @FXML
     private GridPane brickPanel;
+
+    @FXML
+    private VBox nextBrickPanel;
 
     @FXML
     private GameOverPanel gameOverPanel;
@@ -115,6 +119,8 @@ public class GuiController implements Initializable {
 
     private Rectangle[][] rectangles;
     private Rectangle[][] ghostRectangles;
+    
+    private final List<Rectangle[][]> nextBrickGrids = new ArrayList<>();
 
     private Timeline timeLine;
     
@@ -242,6 +248,9 @@ public class GuiController implements Initializable {
     }
 
     public void initGameView(int[][] boardMatrix, ViewData brick) {
+        // Initialize next brick preview first
+        initNextBrickView();
+        
         displayMatrix = new Rectangle[boardMatrix.length][boardMatrix[0].length];
         for (int i = 2; i < boardMatrix.length; i++) {
             for (int j = 0; j < boardMatrix[i].length; j++) {
@@ -320,6 +329,9 @@ public class GuiController implements Initializable {
         ));
         timeLine.setCycleCount(Timeline.INDEFINITE);
         timeLine.play();
+        
+        // Refresh next brick preview with initial data
+        refreshNextBrick(brick.getNextBricks());
     }
 
     private Paint getFillColor(int i) {
@@ -461,6 +473,77 @@ public class GuiController implements Initializable {
                         } else {
                             // Hide ghost piece where brick has no blocks
                             ghostRectangles[i][j].setVisible(false);
+                        }
+                    }
+                }
+            }
+            
+            // Update next brick preview
+            refreshNextBrick(brick.getNextBricks());
+        }
+    }
+
+    /**
+     * Initializes the next brick preview view with 3 mini-grids.
+     */
+    private void initNextBrickView() {
+        // Clear existing grids
+        nextBrickPanel.getChildren().clear();
+        nextBrickGrids.clear();
+        
+        // Create 3 mini-grids for 3 preview slots
+        for (int slot = 0; slot < 3; slot++) {
+            GridPane miniGrid = new GridPane();
+            miniGrid.setAlignment(javafx.geometry.Pos.CENTER);
+            miniGrid.setHgap(1);
+            miniGrid.setVgap(1);
+            
+            // Create a 4x4 matrix of Rectangle objects
+            Rectangle[][] grid = new Rectangle[4][4];
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
+                    rectangle.setFill(Color.TRANSPARENT);
+                    grid[i][j] = rectangle;
+                    miniGrid.add(rectangle, j, i);
+                }
+            }
+            
+            // Store the grid and add to panel
+            nextBrickGrids.add(grid);
+            nextBrickPanel.getChildren().add(miniGrid);
+        }
+    }
+
+    /**
+     * Refreshes the next brick preview with new brick data.
+     * @param nextBricks List of brick matrices to display (up to 3)
+     */
+    private void refreshNextBrick(List<int[][]> nextBricks) {
+        if (nextBricks == null || nextBrickGrids.isEmpty()) {
+            return;
+        }
+        
+        // Loop through the input list (up to 3 bricks)
+        for (int i = 0; i < Math.min(nextBricks.size(), 3); i++) {
+            int[][] brickData = nextBricks.get(i);
+            Rectangle[][] grid = nextBrickGrids.get(i);
+            
+            // Clear the grid (set all fills to TRANSPARENT)
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    grid[row][col].setFill(Color.TRANSPARENT);
+                }
+            }
+            
+            // Paint the new shape: If a cell in the matrix is > 0, set the rectangle fill
+            if (brickData != null) {
+                for (int row = 0; row < brickData.length && row < 4; row++) {
+                    for (int col = 0; col < brickData[row].length && col < 4; col++) {
+                        if (brickData[row][col] > 0) {
+                            grid[row][col].setFill(getFillColor(brickData[row][col]));
+                            grid[row][col].setArcHeight(9);
+                            grid[row][col].setArcWidth(9);
                         }
                     }
                 }

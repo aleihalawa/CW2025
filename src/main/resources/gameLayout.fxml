@@ -51,9 +51,9 @@
         <VBox spacing="10" alignment="TOP_CENTER" prefWidth="150">
             <VBox spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
                 <Label text="NEXT" style="-fx-text-fill: #ffffff; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 0 0 10 0;"/>
-                <GridPane fx:id="nextBrickPanel" hgap="1" vgap="1" alignment="CENTER">
-                    <!-- Visual placeholder for next brick - will be populated later -->
-                </GridPane>
+                <VBox fx:id="nextBrickPanel" alignment="CENTER" spacing="15">
+                    <!-- Visual placeholder for next 3 bricks - will be populated later -->
+                </VBox>
             </VBox>
         </VBox>
         

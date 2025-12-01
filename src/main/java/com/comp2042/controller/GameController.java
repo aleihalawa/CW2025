@@ -7,6 +7,8 @@ import com.comp2042.model.*;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
 
 public class GameController implements InputEventListener {
@@ -20,6 +22,8 @@ public class GameController implements InputEventListener {
     private boolean hasBeatenHighScore = false;
     private int currentHighScore = 0;
     private final com.comp2042.model.HighScoreManager highScoreManager = new com.comp2042.model.HighScoreManager();
+    
+    private MediaPlayer backgroundMusic;
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -34,6 +38,52 @@ public class GameController implements InputEventListener {
         // Initialize lock timer: 0.5s delay before locking
         lockTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> lockPieceAndHandleNewBrick()));
         lockTimer.setCycleCount(1);
+        
+        // Load and play background music
+        loadBackgroundMusic();
+    }
+    
+    /**
+     * Loads and starts playing the background music.
+     */
+    private void loadBackgroundMusic() {
+        try {
+            java.net.URL musicUrl = getClass().getClassLoader().getResource("tetris-ringtone.mp3");
+            if (musicUrl != null) {
+                String musicPath = musicUrl.toExternalForm();
+                Media media = new Media(musicPath);
+                backgroundMusic = new MediaPlayer(media);
+                
+                // Set to loop indefinitely
+                backgroundMusic.setCycleCount(MediaPlayer.INDEFINITE);
+                
+                // Set volume (optional, adjust as needed)
+                backgroundMusic.setVolume(0.3); // 30% volume
+                
+                // Start playing
+                backgroundMusic.play();
+            } else {
+                System.err.println("Could not find tetris-ringtone.mp3 in resources");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading background music: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Stops and disposes the background music.
+     */
+    public void stopBackgroundMusic() {
+        if (backgroundMusic != null) {
+            try {
+                backgroundMusic.stop();
+                backgroundMusic.dispose();
+            } catch (Exception e) {
+                System.err.println("Error disposing background music: " + e.getMessage());
+            }
+            backgroundMusic = null;
+        }
     }
 
     @Override

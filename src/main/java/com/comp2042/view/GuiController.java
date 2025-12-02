@@ -119,6 +119,7 @@ public class GuiController implements Initializable {
     private Rectangle[][] displayMatrix;
 
     private InputEventListener eventListener;
+    private com.comp2042.controller.GameController gameController;
 
     private Rectangle[][] rectangles;
     private Rectangle[][] ghostRectangles;
@@ -615,6 +616,10 @@ public class GuiController implements Initializable {
 
     public void setEventListener(InputEventListener eventListener) {
         this.eventListener = eventListener;
+        // Store GameController reference if it's a GameController
+        if (eventListener instanceof com.comp2042.controller.GameController) {
+            this.gameController = (com.comp2042.controller.GameController) eventListener;
+        }
     }
 
     public void bindScore(Score score) {
@@ -815,6 +820,11 @@ public class GuiController implements Initializable {
                 timeLine.stop();
             }
             
+            // Stop background music
+            if (gameController != null) {
+                gameController.stopBackgroundMusic();
+            }
+            
             // Get the current stage
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             
@@ -942,6 +952,11 @@ public class GuiController implements Initializable {
             // Stop the game timeline
             if (timeLine != null) {
                 timeLine.stop();
+            }
+            
+            // Stop background music
+            if (gameController != null) {
+                gameController.stopBackgroundMusic();
             }
             
             // Load MainMenu.fxml

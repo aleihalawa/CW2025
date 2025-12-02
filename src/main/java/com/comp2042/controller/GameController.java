@@ -29,6 +29,7 @@ public class GameController implements InputEventListener {
     private MediaPlayer gameOverSound;
     private MediaPlayer hardDropSound;
     private MediaPlayer moveSound;
+    private MediaPlayer highScoreSuccessSound;
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -61,6 +62,9 @@ public class GameController implements InputEventListener {
         
         // Load move sound effect
         loadMoveSound();
+        
+        // Load high score success sound effect
+        loadHighScoreSuccessSound();
     }
     
     /**
@@ -235,6 +239,39 @@ public class GameController implements InputEventListener {
     }
     
     /**
+     * Loads the high score success sound effect.
+     */
+    private void loadHighScoreSuccessSound() {
+        try {
+            java.net.URL soundUrl = getClass().getClassLoader().getResource("tetris-success.mp3");
+            if (soundUrl != null) {
+                String soundPath = soundUrl.toExternalForm();
+                Media media = new Media(soundPath);
+                highScoreSuccessSound = new MediaPlayer(media);
+                
+                // Set volume to be noticeable
+                highScoreSuccessSound.setVolume(0.7); // 70% volume
+            } else {
+                System.err.println("Could not find tetris-success.mp3 in resources");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading high score success sound: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Plays the high score success sound effect.
+     */
+    private void playHighScoreSuccessSound() {
+        if (highScoreSuccessSound != null) {
+            // Reset to beginning if already playing
+            highScoreSuccessSound.stop();
+            highScoreSuccessSound.play();
+        }
+    }
+    
+    /**
      * Loads and starts playing the background music.
      */
     private void loadBackgroundMusic() {
@@ -329,6 +366,17 @@ public class GameController implements InputEventListener {
                 System.err.println("Error disposing move sound: " + e.getMessage());
             }
             moveSound = null;
+        }
+        
+        // Also dispose high score success sound
+        if (highScoreSuccessSound != null) {
+            try {
+                highScoreSuccessSound.stop();
+                highScoreSuccessSound.dispose();
+            } catch (Exception e) {
+                System.err.println("Error disposing high score success sound: " + e.getMessage());
+            }
+            highScoreSuccessSound = null;
         }
     }
 
@@ -453,6 +501,9 @@ public class GameController implements InputEventListener {
         // Crucial check: !hasBeatenHighScore ensures this block runs ONLY ONCE per game
         if (!hasBeatenHighScore && currentScore > currentHighScore) {
             hasBeatenHighScore = true; // Set the flag immediately so it doesn't fire again
+            
+            // Play high score success sound when notification appears
+            playHighScoreSuccessSound();
             
             viewGuiController.showHighScoreNotification();
             

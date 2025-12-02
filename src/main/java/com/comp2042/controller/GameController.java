@@ -25,6 +25,7 @@ public class GameController implements InputEventListener {
     
     private MediaPlayer backgroundMusic;
     private MediaPlayer lineClearSound;
+    private MediaPlayer rotateSound;
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -45,6 +46,9 @@ public class GameController implements InputEventListener {
         
         // Load line clear sound effect
         loadLineClearSound();
+        
+        // Load rotation sound effect
+        loadRotateSound();
     }
     
     /**
@@ -77,6 +81,39 @@ public class GameController implements InputEventListener {
             // Reset to beginning if already playing
             lineClearSound.stop();
             lineClearSound.play();
+        }
+    }
+    
+    /**
+     * Loads the rotation sound effect.
+     */
+    private void loadRotateSound() {
+        try {
+            java.net.URL soundUrl = getClass().getClassLoader().getResource("tetris-gb-19-rotate-piece.mp3");
+            if (soundUrl != null) {
+                String soundPath = soundUrl.toExternalForm();
+                Media media = new Media(soundPath);
+                rotateSound = new MediaPlayer(media);
+                
+                // Set volume to be noticeable but not too loud
+                rotateSound.setVolume(0.6); // 60% volume
+            } else {
+                System.err.println("Could not find tetris-gb-19-rotate-piece.mp3 in resources");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading rotation sound: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Plays the rotation sound effect.
+     */
+    private void playRotateSound() {
+        if (rotateSound != null) {
+            // Reset to beginning if already playing
+            rotateSound.stop();
+            rotateSound.play();
         }
     }
     
@@ -132,6 +169,17 @@ public class GameController implements InputEventListener {
             }
             lineClearSound = null;
         }
+        
+        // Also dispose rotation sound
+        if (rotateSound != null) {
+            try {
+                rotateSound.stop();
+                rotateSound.dispose();
+            } catch (Exception e) {
+                System.err.println("Error disposing rotation sound: " + e.getMessage());
+            }
+            rotateSound = null;
+        }
     }
 
     @Override
@@ -185,6 +233,9 @@ public class GameController implements InputEventListener {
     public ViewData onRotateEvent(MoveEvent event) {
         boolean rotated = board.rotateLeftBrick();
         if (rotated) {
+            // Play rotation sound effect
+            playRotateSound();
+            
             // Rotate was successful - stop timer and reset locking state
             lockTimer.stop();
             ((SimpleBoard) board).setLocking(false);

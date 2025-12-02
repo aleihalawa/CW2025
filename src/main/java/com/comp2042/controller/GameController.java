@@ -26,6 +26,7 @@ public class GameController implements InputEventListener {
     private MediaPlayer backgroundMusic;
     private MediaPlayer lineClearSound;
     private MediaPlayer rotateSound;
+    private MediaPlayer gameOverSound;
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -49,6 +50,9 @@ public class GameController implements InputEventListener {
         
         // Load rotation sound effect
         loadRotateSound();
+        
+        // Load game over sound effect
+        loadGameOverSound();
     }
     
     /**
@@ -118,6 +122,45 @@ public class GameController implements InputEventListener {
     }
     
     /**
+     * Loads the game over sound effect.
+     */
+    private void loadGameOverSound() {
+        try {
+            java.net.URL soundUrl = getClass().getClassLoader().getResource("game-over-arcade-6435.mp3");
+            if (soundUrl != null) {
+                String soundPath = soundUrl.toExternalForm();
+                Media media = new Media(soundPath);
+                gameOverSound = new MediaPlayer(media);
+                
+                // Set volume to be noticeable
+                gameOverSound.setVolume(0.7); // 70% volume
+            } else {
+                System.err.println("Could not find game-over-arcade-6435.mp3 in resources");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading game over sound: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Plays the game over sound effect and stops background music.
+     */
+    private void playGameOverSound() {
+        // Stop background music when game is over
+        if (backgroundMusic != null) {
+            backgroundMusic.stop();
+        }
+        
+        // Play game over sound
+        if (gameOverSound != null) {
+            // Reset to beginning if already playing
+            gameOverSound.stop();
+            gameOverSound.play();
+        }
+    }
+    
+    /**
      * Loads and starts playing the background music.
      */
     private void loadBackgroundMusic() {
@@ -179,6 +222,17 @@ public class GameController implements InputEventListener {
                 System.err.println("Error disposing rotation sound: " + e.getMessage());
             }
             rotateSound = null;
+        }
+        
+        // Also dispose game over sound
+        if (gameOverSound != null) {
+            try {
+                gameOverSound.stop();
+                gameOverSound.dispose();
+            } catch (Exception e) {
+                System.err.println("Error disposing game over sound: " + e.getMessage());
+            }
+            gameOverSound = null;
         }
     }
 
@@ -276,6 +330,11 @@ public class GameController implements InputEventListener {
         // Reload the high score to be safe
         currentHighScore = highScoreManager.loadHighScore();
         
+        // Restart background music for new game
+        if (backgroundMusic != null) {
+            backgroundMusic.play();
+        }
+        
         board.newGame();
         viewGuiController.refreshGameBackground(board.getBoardMatrix());
     }
@@ -354,6 +413,7 @@ public class GameController implements InputEventListener {
                 // Then create new brick and check for game over
                 boolean gameOver = board.createNewBrick();
                 if (gameOver) {
+                    playGameOverSound();
                     viewGuiController.gameOver();
                 } else {
                     // Show falling pieces again and refresh brick view to show the new brick
@@ -369,6 +429,7 @@ public class GameController implements InputEventListener {
             
             boolean gameOver = board.createNewBrick();
             if (gameOver) {
+                playGameOverSound();
                 viewGuiController.gameOver();
             } else {
                 // Refresh brick view to show the new brick immediately

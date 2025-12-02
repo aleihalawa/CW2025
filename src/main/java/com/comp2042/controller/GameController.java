@@ -27,6 +27,7 @@ public class GameController implements InputEventListener {
     private MediaPlayer lineClearSound;
     private MediaPlayer rotateSound;
     private MediaPlayer gameOverSound;
+    private MediaPlayer hardDropSound;
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -53,6 +54,9 @@ public class GameController implements InputEventListener {
         
         // Load game over sound effect
         loadGameOverSound();
+        
+        // Load hard drop sound effect
+        loadHardDropSound();
     }
     
     /**
@@ -161,6 +165,39 @@ public class GameController implements InputEventListener {
     }
     
     /**
+     * Loads the hard drop sound effect.
+     */
+    private void loadHardDropSound() {
+        try {
+            java.net.URL soundUrl = getClass().getClassLoader().getResource("fx-hrddp.mp3");
+            if (soundUrl != null) {
+                String soundPath = soundUrl.toExternalForm();
+                Media media = new Media(soundPath);
+                hardDropSound = new MediaPlayer(media);
+                
+                // Set volume to be noticeable
+                hardDropSound.setVolume(0.6); // 60% volume
+            } else {
+                System.err.println("Could not find fx-hrddp.mp3 in resources");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading hard drop sound: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Plays the hard drop sound effect.
+     */
+    private void playHardDropSound() {
+        if (hardDropSound != null) {
+            // Reset to beginning if already playing
+            hardDropSound.stop();
+            hardDropSound.play();
+        }
+    }
+    
+    /**
      * Loads and starts playing the background music.
      */
     private void loadBackgroundMusic() {
@@ -233,6 +270,17 @@ public class GameController implements InputEventListener {
                 System.err.println("Error disposing game over sound: " + e.getMessage());
             }
             gameOverSound = null;
+        }
+        
+        // Also dispose hard drop sound
+        if (hardDropSound != null) {
+            try {
+                hardDropSound.stop();
+                hardDropSound.dispose();
+            } catch (Exception e) {
+                System.err.println("Error disposing hard drop sound: " + e.getMessage());
+            }
+            hardDropSound = null;
         }
     }
 
@@ -316,6 +364,9 @@ public class GameController implements InputEventListener {
             // Check for new high score after score update
             checkHighScore();
         }
+        
+        // Play hard drop landing sound effect
+        playHardDropSound();
         
         // Lock the piece immediately on hard drop (no delay)
         ClearRow clearRow = lockPieceAndHandleNewBrick();

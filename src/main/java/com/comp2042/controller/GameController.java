@@ -28,6 +28,7 @@ public class GameController implements InputEventListener {
     private MediaPlayer rotateSound;
     private MediaPlayer gameOverSound;
     private MediaPlayer hardDropSound;
+    private MediaPlayer moveSound;
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -57,6 +58,9 @@ public class GameController implements InputEventListener {
         
         // Load hard drop sound effect
         loadHardDropSound();
+        
+        // Load move sound effect
+        loadMoveSound();
     }
     
     /**
@@ -198,6 +202,39 @@ public class GameController implements InputEventListener {
     }
     
     /**
+     * Loads the move sound effect (for left/right movement).
+     */
+    private void loadMoveSound() {
+        try {
+            java.net.URL soundUrl = getClass().getClassLoader().getResource("tetris.mp3");
+            if (soundUrl != null) {
+                String soundPath = soundUrl.toExternalForm();
+                Media media = new Media(soundPath);
+                moveSound = new MediaPlayer(media);
+                
+                // Set volume to be noticeable but not too loud
+                moveSound.setVolume(0.5); // 50% volume
+            } else {
+                System.err.println("Could not find tetris.mp3 in resources");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading move sound: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Plays the move sound effect.
+     */
+    private void playMoveSound() {
+        if (moveSound != null) {
+            // Reset to beginning if already playing
+            moveSound.stop();
+            moveSound.play();
+        }
+    }
+    
+    /**
      * Loads and starts playing the background music.
      */
     private void loadBackgroundMusic() {
@@ -282,6 +319,17 @@ public class GameController implements InputEventListener {
             }
             hardDropSound = null;
         }
+        
+        // Also dispose move sound
+        if (moveSound != null) {
+            try {
+                moveSound.stop();
+                moveSound.dispose();
+            } catch (Exception e) {
+                System.err.println("Error disposing move sound: " + e.getMessage());
+            }
+            moveSound = null;
+        }
     }
 
     @Override
@@ -313,6 +361,9 @@ public class GameController implements InputEventListener {
     public ViewData onLeftEvent(MoveEvent event) {
         boolean moved = board.moveBrickLeft();
         if (moved) {
+            // Play move sound effect
+            playMoveSound();
+            
             // Move was successful - stop timer and reset locking state
             lockTimer.stop();
             ((SimpleBoard) board).setLocking(false);
@@ -324,6 +375,9 @@ public class GameController implements InputEventListener {
     public ViewData onRightEvent(MoveEvent event) {
         boolean moved = board.moveBrickRight();
         if (moved) {
+            // Play move sound effect
+            playMoveSound();
+            
             // Move was successful - stop timer and reset locking state
             lockTimer.stop();
             ((SimpleBoard) board).setLocking(false);

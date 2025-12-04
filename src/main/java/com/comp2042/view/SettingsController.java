@@ -1,6 +1,10 @@
 package com.comp2042.view;
 
+import com.comp2042.model.GameSettings;
+import com.comp2042.model.HighScoreManager;
 import com.comp2042.model.SoundManager;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -9,8 +13,10 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Slider;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -22,6 +28,12 @@ public class SettingsController implements Initializable {
     
     @FXML
     private Slider sfxSlider;
+    
+    @FXML
+    private CheckBox ghostModeToggle;
+    
+    @FXML
+    private Button resetScoreButton;
     
     @FXML
     private Button backButton;
@@ -54,6 +66,31 @@ public class SettingsController implements Initializable {
         sfxSlider.valueProperty().addListener((obs, oldValue, newValue) -> {
             soundManager.setSfxVolume(newValue.doubleValue());
         });
+        
+        // Initialize ghost mode toggle
+        ghostModeToggle.setSelected(GameSettings.isGhostModeEnabled());
+        
+        // Add listener to ghost mode toggle
+        ghostModeToggle.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            GameSettings.setGhostModeEnabled(newVal);
+        });
+    }
+    
+    @FXML
+    private void onResetScore(ActionEvent event) {
+        // Reset high score to 0
+        HighScoreManager.resetHighScore();
+        
+        // Provide visual feedback
+        String originalText = resetScoreButton.getText();
+        resetScoreButton.setText("RESET!");
+        
+        // Reset button text after 1 second using Timeline
+        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            resetScoreButton.setText(originalText);
+        }));
+        timeline.setCycleCount(1);
+        timeline.play();
     }
     
     @FXML

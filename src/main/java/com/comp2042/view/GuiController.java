@@ -5,6 +5,7 @@ import com.comp2042.events.EventSource;
 import com.comp2042.events.EventType;
 import com.comp2042.events.MoveEvent;
 import com.comp2042.model.DownData;
+import com.comp2042.model.GameSettings;
 import com.comp2042.model.Score;
 import com.comp2042.model.ViewData;
 import javafx.animation.FadeTransition;
@@ -498,26 +499,37 @@ public class GuiController implements Initializable {
             }
             
             // Update ghost rectangles to match brick shape with outline only
-            if (ghostRectangles != null) {
-                for (int i = 0; i < brickData.length; i++) {
-                    for (int j = 0; j < brickData[i].length; j++) {
-                        int brickValue = brickData[i][j];
-                        if (brickValue != 0) {
-                            // Show ghost piece where brick has blocks, with thin outline in brick color
-                            ghostRectangles[i][j].setVisible(true);
-                            ghostRectangles[i][j].setFill(Color.TRANSPARENT);
-                            Paint brickColor = getFillColor(brickValue);
-                            if (brickColor instanceof Color) {
-                                ghostRectangles[i][j].setStroke((Color) brickColor);
-                                ghostRectangles[i][j].setStrokeWidth(1.0); // Thin outline
-                                ghostRectangles[i][j].setStrokeType(StrokeType.INSIDE); // Stroke inside bounds for perfect alignment
-                                // Add slight neon glow effect
-                                javafx.scene.effect.Glow glow = new javafx.scene.effect.Glow(0.6);
-                                ghostRectangles[i][j].setEffect(glow);
+            if (GameSettings.isGhostModeEnabled()) {
+                if (ghostRectangles != null) {
+                    for (int i = 0; i < brickData.length; i++) {
+                        for (int j = 0; j < brickData[i].length; j++) {
+                            int brickValue = brickData[i][j];
+                            if (brickValue != 0) {
+                                // Show ghost piece where brick has blocks, with thin outline in brick color
+                                ghostRectangles[i][j].setVisible(true);
+                                ghostRectangles[i][j].setFill(Color.TRANSPARENT);
+                                Paint brickColor = getFillColor(brickValue);
+                                if (brickColor instanceof Color) {
+                                    ghostRectangles[i][j].setStroke((Color) brickColor);
+                                    ghostRectangles[i][j].setStrokeWidth(1.0); // Thin outline
+                                    ghostRectangles[i][j].setStrokeType(StrokeType.INSIDE); // Stroke inside bounds for perfect alignment
+                                    // Add slight neon glow effect
+                                    javafx.scene.effect.Glow glow = new javafx.scene.effect.Glow(0.6);
+                                    ghostRectangles[i][j].setEffect(glow);
+                                }
+                            } else {
+                                // Hide ghost piece where brick has no blocks
+                                ghostRectangles[i][j].setVisible(false);
                             }
-                        } else {
-                            // Hide ghost piece where brick has no blocks
-                            ghostRectangles[i][j].setVisible(false);
+                        }
+                    }
+                }
+            } else {
+                // If Ghost Mode is OFF, ensure all ghost rectangles are hidden
+                if (ghostRectangles != null) {
+                    for (Rectangle[] row : ghostRectangles) {
+                        for (Rectangle rect : row) {
+                            rect.setVisible(false);
                         }
                     }
                 }

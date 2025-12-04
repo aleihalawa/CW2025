@@ -949,7 +949,32 @@ public class GuiController implements Initializable {
 
     @FXML
     private void onPauseSettings(ActionEvent event) {
-        System.out.println("Settings feature coming soon");
+        // Don't stop music - just navigate to Settings
+        // Music will continue playing in the background
+        try {
+            // Get the current game scene before navigating away
+            Node source = (Node) event.getSource();
+            Scene gameScene = source.getScene();
+            
+            // Load Settings.fxml
+            URL location = getClass().getClassLoader().getResource("com/comp2042/view/Settings.fxml");
+            FXMLLoader fxmlLoader = new FXMLLoader(location);
+            Parent root = fxmlLoader.load();
+            
+            // Get the current stage from the scene
+            Stage stage = (Stage) gameScene.getWindow();
+            
+            // Create new scene and set it on the stage
+            Scene scene = new Scene(root, 650, 600);
+            
+            // Store reference to game scene so Settings knows to return here
+            scene.getProperties().put("returnToGame", true);
+            scene.getProperties().put("gameScene", gameScene);
+            
+            stage.setScene(scene);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @FXML

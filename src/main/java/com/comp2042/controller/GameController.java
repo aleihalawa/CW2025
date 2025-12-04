@@ -24,7 +24,7 @@ public class GameController implements InputEventListener {
     private final com.comp2042.model.HighScoreManager highScoreManager = new com.comp2042.model.HighScoreManager();
     
     private MediaPlayer backgroundMusic; // Keep MediaPlayer for background music (needs looping)
-    private final SoundManager soundManager = new SoundManager();
+    private final SoundManager soundManager = SoundManager.getInstance();
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -109,8 +109,11 @@ public class GameController implements InputEventListener {
                 // Set to loop indefinitely
                 backgroundMusic.setCycleCount(MediaPlayer.INDEFINITE);
                 
-                // Set volume (optional, adjust as needed)
-                backgroundMusic.setVolume(0.3); // 30% volume
+                // Register with SoundManager for volume control
+                soundManager.setBackgroundMusicPlayer(backgroundMusic);
+                
+                // Set initial volume from SoundManager
+                backgroundMusic.setVolume(soundManager.getMusicVolume());
                 
                 // Start playing
                 backgroundMusic.play();
@@ -124,21 +127,22 @@ public class GameController implements InputEventListener {
     }
     
     /**
-     * Stops and disposes the background music and sound effects.
+     * Stops and disposes the background music.
+     * Unregisters from SoundManager to prevent multiple instances.
+     * Note: Does NOT dispose SoundManager (it's a singleton shared across the app).
      */
     public void stopBackgroundMusic() {
         if (backgroundMusic != null) {
             try {
                 backgroundMusic.stop();
+                // Unregister from SoundManager before disposing to prevent multiple instances
+                soundManager.setBackgroundMusicPlayer(null);
                 backgroundMusic.dispose();
             } catch (Exception e) {
                 System.err.println("Error disposing background music: " + e.getMessage());
             }
             backgroundMusic = null;
         }
-        
-        // Dispose sound manager (clears all cached sound effects)
-        soundManager.dispose();
     }
 
     @Override
@@ -244,8 +248,11 @@ public class GameController implements InputEventListener {
         // Reload the high score to be safe
         currentHighScore = highScoreManager.loadHighScore();
         
-        // Restart background music for new game
-        if (backgroundMusic != null) {
+        // Reload background music if it was disposed (e.g., after going to Settings)
+        if (backgroundMusic == null) {
+            loadBackgroundMusic();
+        } else {
+            // Music still exists, just restart it
             backgroundMusic.play();
         }
         

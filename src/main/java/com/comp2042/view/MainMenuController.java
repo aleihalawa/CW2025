@@ -305,7 +305,25 @@ public class MainMenuController implements Initializable {
 
     @FXML
     private void onSettings(ActionEvent event) {
-        System.out.println("Feature coming soon");
+        try {
+            // Load Settings.fxml
+            URL location = getClass().getClassLoader().getResource("com/comp2042/view/Settings.fxml");
+            FXMLLoader fxmlLoader = new FXMLLoader(location);
+            Parent root = fxmlLoader.load();
+            
+            // Get the current stage
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            
+            // Create new scene and set it on the stage
+            Scene scene = new Scene(root, 650, 600);
+            
+            // Mark that we came from main menu (not game)
+            scene.getProperties().put("returnToGame", false);
+            
+            stage.setScene(scene);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @FXML

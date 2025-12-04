@@ -59,5 +59,16 @@ public class HighScoreManager {
         int savedScore = loadHighScore();
         return currentScore > savedScore;
     }
+    
+    /**
+     * Resets the high score to 0 by overwriting the highscore.dat file.
+     */
+    public static void resetHighScore() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(HIGHSCORE_FILE))) {
+            writer.write("0");
+        } catch (IOException e) {
+            System.err.println("Failed to reset high score: " + e.getMessage());
+        }
+    }
 }
 

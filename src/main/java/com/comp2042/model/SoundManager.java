@@ -19,15 +19,19 @@ public class SoundManager {
     private final Map<String, AudioClip> soundCache = new HashMap<>();
     private final Map<String, Double> baseVolumes = new HashMap<>(); // Store base volumes for each sound
     
-    private double musicVolume = 0.3; // Default to 30% (0.3) to match original behavior
-    private double sfxVolume = 1.0;
+    private double musicVolume;
+    private double sfxVolume;
     
     private MediaPlayer backgroundMusicPlayer;
     
     /**
      * Private constructor for singleton pattern.
+     * Initializes volumes from GameSettings.
      */
     private SoundManager() {
+        // Initialize volumes from GameSettings (which loads from file on startup)
+        musicVolume = GameSettings.getMusicVolume();
+        sfxVolume = GameSettings.getSfxVolume();
     }
     
     /**
@@ -75,11 +79,13 @@ public class SoundManager {
     
     /**
      * Sets the music volume and updates the background music player.
+     * Also updates GameSettings to persist the value.
      * 
      * @param volume Volume level (0.0 to 1.0)
      */
     public void setMusicVolume(double volume) {
         this.musicVolume = Math.max(0.0, Math.min(1.0, volume)); // Clamp to 0.0-1.0
+        GameSettings.setMusicVolume(musicVolume); // Save to GameSettings (which saves to file)
         if (backgroundMusicPlayer != null) {
             backgroundMusicPlayer.setVolume(musicVolume);
         }
@@ -96,11 +102,13 @@ public class SoundManager {
     
     /**
      * Sets the SFX volume and updates all cached AudioClips.
+     * Also updates GameSettings to persist the value.
      * 
      * @param volume Volume level (0.0 to 1.0)
      */
     public void setSfxVolume(double volume) {
         this.sfxVolume = Math.max(0.0, Math.min(1.0, volume)); // Clamp to 0.0-1.0
+        GameSettings.setSfxVolume(sfxVolume); // Save to GameSettings (which saves to file)
         // Update volume for all cached AudioClips: baseVolume * sfxVolume
         for (Map.Entry<String, AudioClip> entry : soundCache.entrySet()) {
             String filename = entry.getKey();

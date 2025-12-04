@@ -147,19 +147,19 @@ public class GameOverPanel extends Pane {
         contentPane.setScaleX(0.85);
         contentPane.setScaleY(0.85);
         
-        // Smooth fade in animation for content only
-        FadeTransition fadeIn = new FadeTransition(Duration.millis(800), contentPane);
+        // Smooth fade in animation for content only - faster for better responsiveness
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(300), contentPane);
         fadeIn.setFromValue(0.0);
         fadeIn.setToValue(1.0);
-        fadeIn.setInterpolator(javafx.animation.Interpolator.SPLINE(0.25, 0.1, 0.25, 1.0)); // Smoother easing
+        fadeIn.setInterpolator(javafx.animation.Interpolator.EASE_OUT);
         
-        // Smooth scale in animation - start slightly smaller and grow
-        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(800), contentPane);
-        scaleIn.setFromX(0.85);
-        scaleIn.setFromY(0.85);
+        // Smooth scale in animation - start slightly smaller and grow - faster
+        ScaleTransition scaleIn = new ScaleTransition(Duration.millis(300), contentPane);
+        scaleIn.setFromX(0.9);
+        scaleIn.setFromY(0.9);
         scaleIn.setToX(1.0);
         scaleIn.setToY(1.0);
-        scaleIn.setInterpolator(javafx.animation.Interpolator.SPLINE(0.25, 0.1, 0.25, 1.0)); // Smoother easing
+        scaleIn.setInterpolator(javafx.animation.Interpolator.EASE_OUT);
         
         // Play both animations together for a smooth, thorough transition
         ParallelTransition parallelTransition = new ParallelTransition(fadeIn, scaleIn);

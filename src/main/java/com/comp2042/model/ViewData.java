@@ -30,7 +30,9 @@ public final class ViewData {
     }
 
     public int[][] getBrickData() {
-        return MatrixOperations.copy(brickData);
+        // Return direct reference - brickData is already immutable (final field)
+        // No need to copy since this is read-only data that won't be modified
+        return brickData;
     }
 
     public int getxPosition() {

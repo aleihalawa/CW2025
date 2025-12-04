@@ -37,11 +37,10 @@ public class SimpleBoard implements Board {
 
     @Override
     public boolean moveBrickDown() {
-        int[][] currentMatrix = MatrixOperations.copy(currentGameMatrix);
         Point p = new Point(currentOffset);
         p.translate(0, 1);
         boolean conflict = collisionService.intersect(
-                currentMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
+                currentGameMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
         if (conflict) {
             return false;
         } else {
@@ -53,11 +52,10 @@ public class SimpleBoard implements Board {
 
     @Override
     public boolean moveBrickLeft() {
-        int[][] currentMatrix = MatrixOperations.copy(currentGameMatrix);
         Point p = new Point(currentOffset);
         p.translate(-1, 0);
         boolean conflict = collisionService.intersect(
-                currentMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
+                currentGameMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
         if (conflict) {
             return false;
         } else {
@@ -68,11 +66,10 @@ public class SimpleBoard implements Board {
 
     @Override
     public boolean moveBrickRight() {
-        int[][] currentMatrix = MatrixOperations.copy(currentGameMatrix);
         Point p = new Point(currentOffset);
         p.translate(1, 0);
         boolean conflict = collisionService.intersect(
-                currentMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
+                currentGameMatrix, brickRotator.getCurrentShape(), (int) p.getX(), (int) p.getY());
         if (conflict) {
             return false;
         } else {
@@ -83,10 +80,9 @@ public class SimpleBoard implements Board {
 
     @Override
     public boolean rotateLeftBrick() {
-        int[][] currentMatrix = MatrixOperations.copy(currentGameMatrix);
         NextShapeInfo nextShape = brickRotator.getNextShape();
         boolean conflict = collisionService.intersect(
-                currentMatrix, nextShape.getShape(), (int) currentOffset.getX(), (int) currentOffset.getY());
+                currentGameMatrix, nextShape.getShape(), (int) currentOffset.getX(), (int) currentOffset.getY());
         if (conflict) {
             return false;
         } else {
@@ -113,7 +109,6 @@ public class SimpleBoard implements Board {
 
     private int calculateGhostY() {
         int currentY = (int) currentOffset.getY();
-        int[][] currentMatrix = MatrixOperations.copy(currentGameMatrix);
         int[][] currentShape = brickRotator.getCurrentShape();
         int currentX = (int) currentOffset.getX();
         
@@ -122,7 +117,7 @@ public class SimpleBoard implements Board {
         while (true) {
             testY++;
             boolean conflict = collisionService.intersect(
-                currentMatrix, currentShape, currentX, testY);
+                currentGameMatrix, currentShape, currentX, testY);
             if (conflict) {
                 // Return the last valid Y position (one above the collision)
                 return testY - 1;

@@ -128,6 +128,13 @@ public class GuiController implements Initializable {
 
     private Timeline timeLine;
     
+    // Cache coordinate calculations to avoid expensive localToScene calls every frame
+    private double cachedBoardOffsetX = 0;
+    private double cachedBoardOffsetY = 0;
+    private double cachedCellWidth = BRICK_SIZE + 1;
+    private double cachedCellHeight = BRICK_SIZE + 1;
+    private boolean coordinatesCached = false;
+    
     private IntegerProperty scoreProperty;
 
     private final BooleanProperty isPause = new SimpleBooleanProperty();
@@ -254,6 +261,9 @@ public class GuiController implements Initializable {
     }
 
     public void initGameView(int[][] boardMatrix, ViewData brick) {
+        // Invalidate coordinate cache when initializing new game view
+        coordinatesCached = false;
+        
         // Initialize next brick preview first
         initNextBrickView();
         
@@ -267,24 +277,27 @@ public class GuiController implements Initializable {
             }
         }
 
-        rectangles = new Rectangle[brick.getBrickData().length][brick.getBrickData()[0].length];
-        for (int i = 0; i < brick.getBrickData().length; i++) {
-            for (int j = 0; j < brick.getBrickData()[i].length; j++) {
+        // Cache brick data to avoid multiple getBrickData() calls
+        int[][] brickData = brick.getBrickData();
+        
+        rectangles = new Rectangle[brickData.length][brickData[0].length];
+        for (int i = 0; i < brickData.length; i++) {
+            for (int j = 0; j < brickData[i].length; j++) {
                 Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
-                rectangle.setFill(getFillColor(brick.getBrickData()[i][j]));
+                rectangle.setFill(getFillColor(brickData[i][j]));
                 rectangles[i][j] = rectangle;
                 brickPanel.add(rectangle, j, i);
             }
         }
 
         // Initialize ghost panel with rectangles (outline only, no fill)
-        ghostRectangles = new Rectangle[brick.getBrickData().length][brick.getBrickData()[0].length];
-        for (int i = 0; i < brick.getBrickData().length; i++) {
-            for (int j = 0; j < brick.getBrickData()[i].length; j++) {
+        ghostRectangles = new Rectangle[brickData.length][brickData[0].length];
+        for (int i = 0; i < brickData.length; i++) {
+            for (int j = 0; j < brickData[i].length; j++) {
                 Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
                 // Ghost piece: no fill, only thin outline in brick color with neon glow
                 rectangle.setFill(Color.TRANSPARENT);
-                Paint brickColor = getFillColor(brick.getBrickData()[i][j]);
+                Paint brickColor = getFillColor(brickData[i][j]);
                 if (brickColor instanceof Color) {
                     rectangle.setStroke((Color) brickColor);
                     rectangle.setStrokeWidth(1.0); // Thin outline
@@ -442,30 +455,28 @@ public class GuiController implements Initializable {
 
     public void refreshBrick(ViewData brick) {
         if (isPause.getValue() == Boolean.FALSE) {
-            // 1. Get the exact screen position of the Board Grid (gamePanel)
-            if (gamePanel.getScene() != null && brickPanel.getParent() != null) {
-                javafx.geometry.Point2D boardPos = gamePanel.localToScene(0, 0);
+            // Cache expensive coordinate calculations - only recalculate if scene changes
+            if (!coordinatesCached || gamePanel.getScene() == null || brickPanel.getParent() == null) {
+                if (gamePanel.getScene() != null && brickPanel.getParent() != null) {
+                    javafx.geometry.Point2D boardPos = gamePanel.localToScene(0, 0);
+                    javafx.geometry.Point2D parentPos = brickPanel.getParent().localToScene(0, 0);
+                    cachedBoardOffsetX = boardPos.getX() - parentPos.getX();
+                    cachedBoardOffsetY = boardPos.getY() - parentPos.getY();
+                    cachedCellWidth = BRICK_SIZE + 1;
+                    cachedCellHeight = BRICK_SIZE + 1;
+                    coordinatesCached = true;
+                }
+            }
+            
+            // Position brickPanel using cached values
+            if (coordinatesCached) {
+                brickPanel.setLayoutX(cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth));
+                brickPanel.setLayoutY(cachedBoardOffsetY + ((brick.getyPosition() - 2) * cachedCellHeight));
                 
-                // 2. Get the screen position of brickPanel's parent container
-                javafx.geometry.Point2D parentPos = brickPanel.getParent().localToScene(0, 0);
-                
-                // 3. Convert board position to brickPanel's parent coordinate system
-                double boardOffsetX = boardPos.getX() - parentPos.getX();
-                double boardOffsetY = boardPos.getY() - parentPos.getY();
-                
-                // 4. Calculate cell dimensions
-                double cellWidth = BRICK_SIZE + 1; // 20px + 1px gap
-                double cellHeight = BRICK_SIZE + 1;
-                
-                // 5. Position brickPanel to align with gamePanel grid
-                brickPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
-                brickPanel.setLayoutY(boardOffsetY + ((brick.getyPosition() - 2) * cellHeight));
-                
-                // 6. Position ghostPanel at the ghost Y position (same X, different Y)
-                // Use the exact same parent and calculation as brickPanel since they're siblings
+                // Position ghostPanel at the ghost Y position
                 if (ghostPanel != null && ghostRectangles != null) {
-                    ghostPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
-                    ghostPanel.setLayoutY(boardOffsetY + ((brick.getGhostY() - 2) * cellHeight));
+                    ghostPanel.setLayoutX(cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth));
+                    ghostPanel.setLayoutY(cachedBoardOffsetY + ((brick.getGhostY() - 2) * cachedCellHeight));
                 }
             }
             
@@ -476,18 +487,21 @@ public class GuiController implements Initializable {
                 brickPanel.setOpacity(1.0); // Normal brightness
             }
             
+            // Cache brick data to avoid multiple getBrickData() calls
+            int[][] brickData = brick.getBrickData();
+            
             // Update brick rectangles
-            for (int i = 0; i < brick.getBrickData().length; i++) {
-                for (int j = 0; j < brick.getBrickData()[i].length; j++) {
-                    setRectangleData(brick.getBrickData()[i][j], rectangles[i][j]);
+            for (int i = 0; i < brickData.length; i++) {
+                for (int j = 0; j < brickData[i].length; j++) {
+                    setRectangleData(brickData[i][j], rectangles[i][j]);
                 }
             }
             
             // Update ghost rectangles to match brick shape with outline only
             if (ghostRectangles != null) {
-                for (int i = 0; i < brick.getBrickData().length; i++) {
-                    for (int j = 0; j < brick.getBrickData()[i].length; j++) {
-                        int brickValue = brick.getBrickData()[i][j];
+                for (int i = 0; i < brickData.length; i++) {
+                    for (int j = 0; j < brickData[i].length; j++) {
+                        int brickValue = brickData[i][j];
                         if (brickValue != 0) {
                             // Show ghost piece where brick has blocks, with thin outline in brick color
                             ghostRectangles[i][j].setVisible(true);
@@ -583,6 +597,8 @@ public class GuiController implements Initializable {
     }
 
     public void refreshGameBackground(int[][] board) {
+        // Only update visible rows (2 to 24, skipping top 2 hidden rows)
+        // This is already optimized - only called when board state changes, not every frame
         for (int i = 2; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
                 Rectangle rectangle = displayMatrix[i][j];
@@ -713,34 +729,29 @@ public class GuiController implements Initializable {
         dimmer.toFront();
         label.toFront();
         
-        // Appear Phase (Parallel)
-        FadeTransition dimmerFadeIn = new FadeTransition(Duration.millis(300), dimmer);
+        // Appear Phase (Parallel) - faster for better responsiveness
+        FadeTransition dimmerFadeIn = new FadeTransition(Duration.millis(150), dimmer);
         dimmerFadeIn.setFromValue(0.0);
         dimmerFadeIn.setToValue(0.7);
         
-        ScaleTransition labelScaleIn = new ScaleTransition(Duration.millis(500), label);
+        ScaleTransition labelScaleIn = new ScaleTransition(Duration.millis(250), label);
         labelScaleIn.setFromX(0.0);
         labelScaleIn.setFromY(0.0);
         labelScaleIn.setToX(1.0);
         labelScaleIn.setToY(1.0);
-        // Use overshoot interpolator if available, otherwise ease out
-        try {
-            labelScaleIn.setInterpolator(javafx.animation.Interpolator.SPLINE(0.34, 1.56, 0.64, 1)); // Overshoot-like
-        } catch (Exception e) {
-            labelScaleIn.setInterpolator(javafx.animation.Interpolator.EASE_OUT);
-        }
+        labelScaleIn.setInterpolator(javafx.animation.Interpolator.EASE_OUT);
         
         ParallelTransition appearTransition = new ParallelTransition(dimmerFadeIn, labelScaleIn);
         
-        // Hold Phase
-        javafx.animation.PauseTransition hold = new javafx.animation.PauseTransition(Duration.millis(1500));
+        // Hold Phase - shorter for faster flow
+        javafx.animation.PauseTransition hold = new javafx.animation.PauseTransition(Duration.millis(1000));
         
-        // Disappear Phase (Parallel)
-        FadeTransition dimmerFadeOut = new FadeTransition(Duration.millis(300), dimmer);
+        // Disappear Phase (Parallel) - faster
+        FadeTransition dimmerFadeOut = new FadeTransition(Duration.millis(150), dimmer);
         dimmerFadeOut.setFromValue(0.7);
         dimmerFadeOut.setToValue(0.0);
         
-        FadeTransition labelFadeOut = new FadeTransition(Duration.millis(300), label);
+        FadeTransition labelFadeOut = new FadeTransition(Duration.millis(150), label);
         labelFadeOut.setFromValue(1.0);
         labelFadeOut.setToValue(0.0);
         

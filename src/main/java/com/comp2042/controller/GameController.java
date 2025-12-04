@@ -23,13 +23,8 @@ public class GameController implements InputEventListener {
     private int currentHighScore = 0;
     private final com.comp2042.model.HighScoreManager highScoreManager = new com.comp2042.model.HighScoreManager();
     
-    private MediaPlayer backgroundMusic;
-    private MediaPlayer lineClearSound;
-    private MediaPlayer rotateSound;
-    private MediaPlayer gameOverSound;
-    private MediaPlayer hardDropSound;
-    private MediaPlayer moveSound;
-    private MediaPlayer highScoreSuccessSound;
+    private MediaPlayer backgroundMusic; // Keep MediaPlayer for background music (needs looping)
+    private final SoundManager soundManager = new SoundManager();
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -45,114 +40,25 @@ public class GameController implements InputEventListener {
         lockTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> lockPieceAndHandleNewBrick()));
         lockTimer.setCycleCount(1);
         
+        // Initialize sound manager (pre-loads all sound effects into memory)
+        soundManager.initialize();
+        
         // Load and play background music
         loadBackgroundMusic();
-        
-        // Load line clear sound effect
-        loadLineClearSound();
-        
-        // Load rotation sound effect
-        loadRotateSound();
-        
-        // Load game over sound effect
-        loadGameOverSound();
-        
-        // Load hard drop sound effect
-        loadHardDropSound();
-        
-        // Load move sound effect
-        loadMoveSound();
-        
-        // Load high score success sound effect
-        loadHighScoreSuccessSound();
-    }
-    
-    /**
-     * Loads the line clear sound effect.
-     */
-    private void loadLineClearSound() {
-        try {
-            java.net.URL soundUrl = getClass().getClassLoader().getResource("tetris-line-clear-sound.mp3");
-            if (soundUrl != null) {
-                String soundPath = soundUrl.toExternalForm();
-                Media media = new Media(soundPath);
-                lineClearSound = new MediaPlayer(media);
-                
-                // Set volume higher than background music to be more noticeable
-                lineClearSound.setVolume(0.7); // 70% volume
-            } else {
-                System.err.println("Could not find tetris-line-clear-sound.mp3 in resources");
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading line clear sound: " + e.getMessage());
-            e.printStackTrace();
-        }
     }
     
     /**
      * Plays the line clear sound effect.
      */
     private void playLineClearSound() {
-        if (lineClearSound != null) {
-            // Reset to beginning if already playing
-            lineClearSound.stop();
-            lineClearSound.play();
-        }
-    }
-    
-    /**
-     * Loads the rotation sound effect.
-     */
-    private void loadRotateSound() {
-        try {
-            java.net.URL soundUrl = getClass().getClassLoader().getResource("tetris-gb-19-rotate-piece.mp3");
-            if (soundUrl != null) {
-                String soundPath = soundUrl.toExternalForm();
-                Media media = new Media(soundPath);
-                rotateSound = new MediaPlayer(media);
-                
-                // Set volume to be noticeable but not too loud
-                rotateSound.setVolume(0.6); // 60% volume
-            } else {
-                System.err.println("Could not find tetris-gb-19-rotate-piece.mp3 in resources");
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading rotation sound: " + e.getMessage());
-            e.printStackTrace();
-        }
+        soundManager.play("tetris-line-clear-sound.mp3");
     }
     
     /**
      * Plays the rotation sound effect.
      */
     private void playRotateSound() {
-        if (rotateSound != null) {
-            // Reset to beginning if already playing
-            rotateSound.stop();
-            rotateSound.play();
-        }
-    }
-    
-    /**
-     * Loads the game over sound effect.
-     */
-    private void loadGameOverSound() {
-        try {
-            java.net.URL soundUrl = getClass().getClassLoader().getResource("game-over-arcade-6435.mp3");
-            if (soundUrl != null) {
-                String soundPath = soundUrl.toExternalForm();
-                Media media = new Media(soundPath);
-                gameOverSound = new MediaPlayer(media);
-                
-                // Set volume to be noticeable
-                gameOverSound.setVolume(0.7); // 70% volume
-            } else {
-                System.err.println("Could not find game-over-arcade-6435.mp3 in resources");
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading game over sound: " + e.getMessage());
-            e.printStackTrace();
-        }
+        soundManager.play("tetris-gb-19-rotate-piece.mp3");
     }
     
     /**
@@ -165,110 +71,28 @@ public class GameController implements InputEventListener {
         }
         
         // Play game over sound
-        if (gameOverSound != null) {
-            // Reset to beginning if already playing
-            gameOverSound.stop();
-            gameOverSound.play();
-        }
-    }
-    
-    /**
-     * Loads the hard drop sound effect.
-     */
-    private void loadHardDropSound() {
-        try {
-            java.net.URL soundUrl = getClass().getClassLoader().getResource("fx-hrddp.mp3");
-            if (soundUrl != null) {
-                String soundPath = soundUrl.toExternalForm();
-                Media media = new Media(soundPath);
-                hardDropSound = new MediaPlayer(media);
-                
-                // Set volume to be noticeable
-                hardDropSound.setVolume(0.6); // 60% volume
-            } else {
-                System.err.println("Could not find fx-hrddp.mp3 in resources");
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading hard drop sound: " + e.getMessage());
-            e.printStackTrace();
-        }
+        soundManager.play("game-over-arcade-6435.mp3");
     }
     
     /**
      * Plays the hard drop sound effect.
      */
     private void playHardDropSound() {
-        if (hardDropSound != null) {
-            // Reset to beginning if already playing
-            hardDropSound.stop();
-            hardDropSound.play();
-        }
-    }
-    
-    /**
-     * Loads the move sound effect (for left/right movement).
-     */
-    private void loadMoveSound() {
-        try {
-            java.net.URL soundUrl = getClass().getClassLoader().getResource("tetris.mp3");
-            if (soundUrl != null) {
-                String soundPath = soundUrl.toExternalForm();
-                Media media = new Media(soundPath);
-                moveSound = new MediaPlayer(media);
-                
-                // Set volume to be noticeable but not too loud
-                moveSound.setVolume(0.5); // 50% volume
-            } else {
-                System.err.println("Could not find tetris.mp3 in resources");
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading move sound: " + e.getMessage());
-            e.printStackTrace();
-        }
+        soundManager.play("fx-hrddp.mp3");
     }
     
     /**
      * Plays the move sound effect.
      */
     private void playMoveSound() {
-        if (moveSound != null) {
-            // Reset to beginning if already playing
-            moveSound.stop();
-            moveSound.play();
-        }
-    }
-    
-    /**
-     * Loads the high score success sound effect.
-     */
-    private void loadHighScoreSuccessSound() {
-        try {
-            java.net.URL soundUrl = getClass().getClassLoader().getResource("tetris-success.mp3");
-            if (soundUrl != null) {
-                String soundPath = soundUrl.toExternalForm();
-                Media media = new Media(soundPath);
-                highScoreSuccessSound = new MediaPlayer(media);
-                
-                // Set volume to be noticeable
-                highScoreSuccessSound.setVolume(0.7); // 70% volume
-            } else {
-                System.err.println("Could not find tetris-success.mp3 in resources");
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading high score success sound: " + e.getMessage());
-            e.printStackTrace();
-        }
+        soundManager.play("tetris.mp3");
     }
     
     /**
      * Plays the high score success sound effect.
      */
     private void playHighScoreSuccessSound() {
-        if (highScoreSuccessSound != null) {
-            // Reset to beginning if already playing
-            highScoreSuccessSound.stop();
-            highScoreSuccessSound.play();
-        }
+        soundManager.play("tetris-success.mp3");
     }
     
     /**
@@ -300,7 +124,7 @@ public class GameController implements InputEventListener {
     }
     
     /**
-     * Stops and disposes the background music.
+     * Stops and disposes the background music and sound effects.
      */
     public void stopBackgroundMusic() {
         if (backgroundMusic != null) {
@@ -313,71 +137,8 @@ public class GameController implements InputEventListener {
             backgroundMusic = null;
         }
         
-        // Also dispose line clear sound
-        if (lineClearSound != null) {
-            try {
-                lineClearSound.stop();
-                lineClearSound.dispose();
-            } catch (Exception e) {
-                System.err.println("Error disposing line clear sound: " + e.getMessage());
-            }
-            lineClearSound = null;
-        }
-        
-        // Also dispose rotation sound
-        if (rotateSound != null) {
-            try {
-                rotateSound.stop();
-                rotateSound.dispose();
-            } catch (Exception e) {
-                System.err.println("Error disposing rotation sound: " + e.getMessage());
-            }
-            rotateSound = null;
-        }
-        
-        // Also dispose game over sound
-        if (gameOverSound != null) {
-            try {
-                gameOverSound.stop();
-                gameOverSound.dispose();
-            } catch (Exception e) {
-                System.err.println("Error disposing game over sound: " + e.getMessage());
-            }
-            gameOverSound = null;
-        }
-        
-        // Also dispose hard drop sound
-        if (hardDropSound != null) {
-            try {
-                hardDropSound.stop();
-                hardDropSound.dispose();
-            } catch (Exception e) {
-                System.err.println("Error disposing hard drop sound: " + e.getMessage());
-            }
-            hardDropSound = null;
-        }
-        
-        // Also dispose move sound
-        if (moveSound != null) {
-            try {
-                moveSound.stop();
-                moveSound.dispose();
-            } catch (Exception e) {
-                System.err.println("Error disposing move sound: " + e.getMessage());
-            }
-            moveSound = null;
-        }
-        
-        // Also dispose high score success sound
-        if (highScoreSuccessSound != null) {
-            try {
-                highScoreSuccessSound.stop();
-                highScoreSuccessSound.dispose();
-            } catch (Exception e) {
-                System.err.println("Error disposing high score success sound: " + e.getMessage());
-            }
-            highScoreSuccessSound = null;
-        }
+        // Dispose sound manager (clears all cached sound effects)
+        soundManager.dispose();
     }
 
     @Override

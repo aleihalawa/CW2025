@@ -19,6 +19,7 @@ public class GameSettings {
     private static boolean ghostModeEnabled = true;
     private static double musicVolume = 0.5;
     private static double sfxVolume = 0.5;
+    private static String playerName = "Player";
     
     // Load settings when class is first loaded
     static {
@@ -83,6 +84,29 @@ public class GameSettings {
     }
     
     /**
+     * Gets the player name.
+     * 
+     * @return The player's name
+     */
+    public static String getPlayerName() {
+        return playerName;
+    }
+    
+    /**
+     * Sets the player name and saves to file.
+     * 
+     * @param name The player's name
+     */
+    public static void setPlayerName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            playerName = "Player";
+        } else {
+            playerName = name.trim();
+        }
+        save();
+    }
+    
+    /**
      * Saves all settings to the settings file.
      */
     private static void save() {
@@ -92,6 +116,8 @@ public class GameSettings {
             writer.write("musicVolume=" + musicVolume);
             writer.newLine();
             writer.write("sfxVolume=" + sfxVolume);
+            writer.newLine();
+            writer.write("playerName=" + playerName);
         } catch (IOException e) {
             System.err.println("Failed to save settings: " + e.getMessage());
         }
@@ -143,6 +169,9 @@ public class GameSettings {
                         } catch (NumberFormatException e) {
                             // Use default if invalid
                         }
+                        break;
+                    case "playerName":
+                        playerName = value.isEmpty() ? "Player" : value;
                         break;
                 }
             }

@@ -804,15 +804,13 @@ public class GuiController implements Initializable {
             }
         }
         
-        // Save high score if this is a new record
-        com.comp2042.model.HighScoreManager highScoreManager = new com.comp2042.model.HighScoreManager();
-        if (highScoreManager.isNewHighScore(finalScore)) {
-            highScoreManager.saveHighScore(finalScore);
-        }
-        
         // Setup button handlers
         gameOverPanel.setOnRestart(e -> {
             newGame(e);
+        });
+        
+        gameOverPanel.setOnLeaderboard(e -> {
+            showLeaderboard();
         });
         
         gameOverPanel.setOnMainMenu(e -> {
@@ -1174,5 +1172,33 @@ public class GuiController implements Initializable {
 
         // Play the animation
         sequence.play();
+    }
+    
+    /**
+     * Shows the leaderboard dialog with top 5 scores.
+     */
+    public void showLeaderboard() {
+        try {
+            // Load Leaderboard.fxml
+            URL location = getClass().getClassLoader().getResource("com/comp2042/view/Leaderboard.fxml");
+            FXMLLoader fxmlLoader = new FXMLLoader(location);
+            Parent root = fxmlLoader.load();
+            
+            // Create a new stage for the leaderboard dialog
+            Stage leaderboardStage = new Stage();
+            leaderboardStage.setTitle("Leaderboard");
+            leaderboardStage.setScene(new Scene(root, 500, 600));
+            leaderboardStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            if (gameBoard != null && gameBoard.getScene() != null) {
+                leaderboardStage.initOwner(gameBoard.getScene().getWindow());
+            }
+            leaderboardStage.setResizable(false);
+            
+            // Show the dialog
+            leaderboardStage.showAndWait();
+        } catch (Exception e) {
+            System.err.println("Error showing leaderboard: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

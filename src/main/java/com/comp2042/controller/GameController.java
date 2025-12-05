@@ -19,9 +19,6 @@ public class GameController implements InputEventListener {
 
     private final Timeline lockTimer;
     
-    private boolean hasBeatenHighScore = false;
-    private int currentHighScore = 0;
-    private final com.comp2042.model.HighScoreManager highScoreManager = new com.comp2042.model.HighScoreManager();
     
     private MediaPlayer backgroundMusic; // Keep MediaPlayer for background music (needs looping)
     private final SoundManager soundManager = SoundManager.getInstance();
@@ -32,9 +29,6 @@ public class GameController implements InputEventListener {
         viewGuiController.setEventListener(this);
         viewGuiController.initGameView(board.getBoardMatrix(), board.getViewData());
         viewGuiController.bindScore(board.getScore());
-        
-        // Initialize high score
-        currentHighScore = highScoreManager.loadHighScore();
         
         // Initialize lock timer: 0.5s delay before locking
         lockTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> lockPieceAndHandleNewBrick()));
@@ -224,12 +218,10 @@ public class GameController implements InputEventListener {
             dropCount++;
         }
         
-        // Calculate and apply hard drop score (2 points per cell dropped)
+            // Calculate and apply hard drop score (2 points per cell dropped)
         if (dropCount > 0 && event.getEventSource() == EventSource.USER) {
             int hardDropScore = dropCount * 2;
             board.getScore().add(hardDropScore);
-            // Check for new high score after score update
-            checkHighScore();
         }
         
         // Play hard drop landing sound effect
@@ -243,11 +235,6 @@ public class GameController implements InputEventListener {
 
     @Override
     public void createNewGame() {
-        // Reset the flag so the next game can trigger the alert again
-        hasBeatenHighScore = false;
-        // Reload the high score to be safe
-        currentHighScore = highScoreManager.loadHighScore();
-        
         // Reload background music if it was disposed (e.g., after going to Settings)
         if (backgroundMusic == null) {
             loadBackgroundMusic();
@@ -260,29 +247,6 @@ public class GameController implements InputEventListener {
         viewGuiController.refreshGameBackground(board.getBoardMatrix());
     }
     
-    /**
-     * Checks if the current score has beaten the high score.
-     * Only triggers once per game session.
-     */
-    private void checkHighScore() {
-        int currentScore = board.getScore().scoreProperty().get();
-        // Crucial check: !hasBeatenHighScore ensures this block runs ONLY ONCE per game
-        if (!hasBeatenHighScore && currentScore > currentHighScore) {
-            hasBeatenHighScore = true; // Set the flag immediately so it doesn't fire again
-            
-            // Play high score success sound when notification appears
-            playHighScoreSuccessSound();
-            
-            viewGuiController.showHighScoreNotification();
-            
-            // Save the new high score
-            highScoreManager.saveHighScore(currentScore);
-            currentHighScore = currentScore; // Update the threshold
-            
-            // Optional: Logging
-            System.out.println("High Score notification finished");
-        }
-    }
     /**
      * Handles the situation when a falling piece can no longer move down:
      * - merges it into the background
@@ -338,7 +302,7 @@ public class GameController implements InputEventListener {
                 boolean gameOver = board.createNewBrick();
                 if (gameOver) {
                     playGameOverSound();
-                    viewGuiController.gameOver();
+                    handleGameOver();
                 } else {
                     // Show falling pieces again and refresh brick view to show the new brick
                     viewGuiController.showFallingPieces();
@@ -354,7 +318,7 @@ public class GameController implements InputEventListener {
             boolean gameOver = board.createNewBrick();
             if (gameOver) {
                 playGameOverSound();
-                viewGuiController.gameOver();
+                handleGameOver();
             } else {
                 // Refresh brick view to show the new brick immediately
                 viewGuiController.refreshBrick(board.getViewData());
@@ -384,8 +348,6 @@ public class GameController implements InputEventListener {
     private void applyLineClearScore(ClearRow clearRow) {
         if (clearRow != null && clearRow.getLinesRemovedCount() > 0) {
             board.getScore().add(clearRow.getScoreBonus());
-            // Check for new high score after score update
-            checkHighScore();
         }
     }
 
@@ -395,8 +357,27 @@ public class GameController implements InputEventListener {
     private void rewardManualDrop(MoveEvent event) {
         if (event.getEventSource() == EventSource.USER) {
             board.getScore().add(1);
-            // Check for new high score after score update
-            checkHighScore();
         }
+    }
+    
+    /**
+     * Handles game over logic: saves score if it qualifies for leaderboard.
+     */
+    private void handleGameOver() {
+        int finalScore = board.getScore().scoreProperty().get();
+        
+        // Check if this score qualifies for the leaderboard
+        if (com.comp2042.model.HighScoreManager.isTopScore(com.comp2042.model.GameMode.CLASSIC, finalScore)) {
+            // Save score entry with stored player name
+            String playerName = com.comp2042.model.GameSettings.getPlayerName();
+            if (playerName == null || playerName.trim().isEmpty()) {
+                playerName = "Player";
+            }
+            com.comp2042.model.ScoreEntry entry = new com.comp2042.model.ScoreEntry(playerName, finalScore);
+            com.comp2042.model.HighScoreManager.saveEntry(com.comp2042.model.GameMode.CLASSIC, entry);
+        }
+        
+        // Show game over panel
+        viewGuiController.gameOver();
     }
 }

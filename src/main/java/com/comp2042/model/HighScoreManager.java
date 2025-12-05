@@ -1,68 +1,100 @@
 package com.comp2042.model;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
- * Manages high score persistence to a local file.
+ * Manages leaderboard persistence for different game modes.
+ * Each game mode has its own leaderboard file storing the top 10 scores.
  */
 public class HighScoreManager {
-
+    
     private static final String HIGHSCORE_FILE = "highscore.dat";
 
     /**
-     * Loads the high score from the file.
-     * @return The saved high score, or 0 if the file doesn't exist or an error occurs
+     * Loads the leaderboard for the specified game mode.
+     * 
+     * @param mode The game mode to load the leaderboard for
+     * @return A list of ScoreEntry objects, sorted by score (descending).
+     *         Returns an empty list if the file doesn't exist or an error occurs.
      */
-    public int loadHighScore() {
-        File file = new File(HIGHSCORE_FILE);
+    public static List<ScoreEntry> loadLeaderboard(GameMode mode) {
+        File file = new File(mode.getFileName());
         if (!file.exists()) {
-            return 0;
+            return new ArrayList<>();
         }
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            String line = reader.readLine();
-            if (line != null && !line.trim().isEmpty()) {
-                return Integer.parseInt(line.trim());
-            }
-        } catch (IOException | NumberFormatException e) {
-            // Return 0 if file read fails or content is invalid
-            return 0;
+        
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            @SuppressWarnings("unchecked")
+            List<ScoreEntry> leaderboard = (List<ScoreEntry>) ois.readObject();
+            return leaderboard != null ? leaderboard : new ArrayList<>();
+        } catch (IOException | ClassNotFoundException | ClassCastException e) {
+            System.err.println("Failed to load leaderboard for " + mode + ": " + e.getMessage());
+            return new ArrayList<>();
         }
-
-        return 0;
     }
-
+    
     /**
-     * Saves a new high score to the file.
-     * @param newScore The score to save
+     * Saves a new score entry to the leaderboard for the specified game mode.
+     * The leaderboard is automatically sorted and limited to the top 10 entries.
+     * 
+     * @param mode The game mode to save the entry for
+     * @param entry The score entry to save
      */
-    public void saveHighScore(int newScore) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(HIGHSCORE_FILE))) {
-            writer.write(String.valueOf(newScore));
+    public static void saveEntry(GameMode mode, ScoreEntry entry) {
+        // Load the current leaderboard
+        List<ScoreEntry> leaderboard = loadLeaderboard(mode);
+        
+        // Add the new entry
+        leaderboard.add(entry);
+        
+        // Sort the list (descending by score)
+        Collections.sort(leaderboard);
+        
+        // Keep only the top 10 entries
+        while (leaderboard.size() > 10) {
+            leaderboard.remove(leaderboard.size() - 1);
+        }
+        
+        // Save the updated leaderboard back to the file
+        File file = new File(mode.getFileName());
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+            oos.writeObject(leaderboard);
         } catch (IOException e) {
-            // Log error but don't throw - high score saving failure shouldn't crash the game
-            System.err.println("Failed to save high score: " + e.getMessage());
+            System.err.println("Failed to save leaderboard entry for " + mode + ": " + e.getMessage());
         }
     }
-
+    
     /**
-     * Checks if the current score is a new high score.
-     * @param currentScore The current score to check
-     * @return true if currentScore is greater than the saved high score, false otherwise
+     * Checks if a score qualifies for the top 10 leaderboard.
+     * 
+     * @param mode The game mode to check
+     * @param score The score to check
+     * @return true if the leaderboard has fewer than 10 entries OR 
+     *         if the score is higher than the last entry's score, false otherwise
      */
-    public boolean isNewHighScore(int currentScore) {
-        int savedScore = loadHighScore();
-        return currentScore > savedScore;
+    public static boolean isTopScore(GameMode mode, int score) {
+        List<ScoreEntry> leaderboard = loadLeaderboard(mode);
+        
+        // If there are fewer than 10 entries, any score qualifies
+        if (leaderboard.size() < 10) {
+            return true;
+        }
+        
+        // If there are 10 entries, check if the score beats the lowest one
+        ScoreEntry lastEntry = leaderboard.get(leaderboard.size() - 1);
+        return score > lastEntry.getScore();
     }
     
     /**
      * Resets the high score to 0 by overwriting the highscore.dat file.
+     * This method is kept for backward compatibility with the old system.
+     * 
+     * @deprecated Consider using leaderboard methods instead
      */
+    @Deprecated
     public static void resetHighScore() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(HIGHSCORE_FILE))) {
             writer.write("0");
@@ -71,4 +103,3 @@ public class HighScoreManager {
         }
     }
 }
-

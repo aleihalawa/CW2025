@@ -19,6 +19,7 @@ public class GameOverPanel extends Pane {
     
     private ImageView menuImage;
     private Button restartButton;
+    private Button leaderboardButton;
     private Button mainMenuButton;
     private VBox buttonContainer;
     private Rectangle dimOverlay;
@@ -76,11 +77,15 @@ public class GameOverPanel extends Pane {
         restartButton = new Button("RESTART");
         restartButton.getStyleClass().add("pause-menu-button");
         
+        // Leaderboard Button - use same style as pause menu buttons
+        leaderboardButton = new Button("LEADERBOARD");
+        leaderboardButton.getStyleClass().add("pause-menu-button");
+        
         // Main Menu Button - use same style as pause menu buttons
         mainMenuButton = new Button("MAIN MENU");
         mainMenuButton.getStyleClass().add("pause-menu-button");
         
-        buttonContainer.getChildren().addAll(restartButton, mainMenuButton);
+        buttonContainer.getChildren().addAll(restartButton, leaderboardButton, mainMenuButton);
         contentPane.getChildren().add(buttonContainer);
         
         // Position buttons below the image
@@ -122,6 +127,12 @@ public class GameOverPanel extends Pane {
     public void setOnRestart(EventHandler<ActionEvent> handler) {
         if (restartButton != null) {
             restartButton.setOnAction(handler);
+        }
+    }
+    
+    public void setOnLeaderboard(EventHandler<ActionEvent> handler) {
+        if (leaderboardButton != null) {
+            leaderboardButton.setOnAction(handler);
         }
     }
     

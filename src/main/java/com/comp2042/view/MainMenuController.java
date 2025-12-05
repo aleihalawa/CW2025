@@ -45,8 +45,6 @@ public class MainMenuController implements Initializable {
     private MediaPlayer mediaPlayer;
     private static final int MAX_RETRY_ATTEMPTS = 3;
     private int retryAttempts = 0;
-    private final HighScoreManager highScoreManager = new HighScoreManager();
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Dispose any existing media player first (in case of scene reload)
@@ -71,12 +69,17 @@ public class MainMenuController implements Initializable {
     }
     
     /**
-     * Loads the high score from file and updates the label.
+     * Loads the high score from the leaderboard and updates the label.
      */
     private void loadHighScore() {
         if (highScoreLabel != null) {
-            int highScore = highScoreManager.loadHighScore();
-            highScoreLabel.setText("HIGH SCORE: " + highScore);
+            java.util.List<com.comp2042.model.ScoreEntry> topScores = com.comp2042.model.HighScoreManager.loadLeaderboard(com.comp2042.model.GameMode.CLASSIC);
+            if (topScores.isEmpty()) {
+                highScoreLabel.setText("HIGH SCORE: 0");
+            } else {
+                int topScore = topScores.get(0).getScore();
+                highScoreLabel.setText("HIGH SCORE: " + topScore);
+            }
         }
     }
     
@@ -279,6 +282,43 @@ public class MainMenuController implements Initializable {
 
     @FXML
     private void onStartGame(ActionEvent event) {
+        // Show name entry dialog before starting game
+        showNameEntryDialog((Stage) ((Node) event.getSource()).getScene().getWindow(), () -> {
+            // After name is entered, start the game
+            startGameAfterNameEntry((Stage) ((Node) event.getSource()).getScene().getWindow());
+        });
+    }
+    
+    private void showNameEntryDialog(Stage parentStage, Runnable onComplete) {
+        try {
+            URL location = getClass().getClassLoader().getResource("com/comp2042/view/NameEntry.fxml");
+            FXMLLoader fxmlLoader = new FXMLLoader(location);
+            Parent root = fxmlLoader.load();
+            
+            Stage nameEntryStage = new Stage();
+            nameEntryStage.setTitle("Enter Your Name");
+            nameEntryStage.setScene(new Scene(root, 400, 300));
+            nameEntryStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            nameEntryStage.initOwner(parentStage);
+            nameEntryStage.setResizable(false);
+            
+            nameEntryStage.setOnCloseRequest(e -> {
+                // If user closes without entering name, use default
+                onComplete.run();
+            });
+            
+            // Show dialog and wait for it to close, then start game
+            nameEntryStage.showAndWait();
+            onComplete.run();
+        } catch (Exception e) {
+            System.err.println("Error showing name entry dialog: " + e.getMessage());
+            e.printStackTrace();
+            // If error, just start game anyway
+            onComplete.run();
+        }
+    }
+    
+    private void startGameAfterNameEntry(Stage stage) {
         // Stop and dispose video player when switching to game
         disposeMediaPlayer();
         
@@ -288,9 +328,6 @@ public class MainMenuController implements Initializable {
             FXMLLoader fxmlLoader = new FXMLLoader(location);
             Parent root = fxmlLoader.load();
             GuiController controller = fxmlLoader.getController();
-
-            // Get the current stage
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
 
             // Create new scene and set it on the stage
             Scene scene = new Scene(root, 650, 600);

@@ -1,6 +1,7 @@
 package com.comp2042.view;
 
 import com.comp2042.controller.GameController;
+import com.comp2042.model.GameSettings;
 import com.comp2042.model.HighScoreManager;
 import javafx.animation.ScaleTransition;
 import javafx.event.ActionEvent;
@@ -42,6 +43,9 @@ public class MainMenuController implements Initializable {
     @FXML
     private Label highScoreLabel;
     
+    @FXML
+    private com.comp2042.view.NameEntryPanel nameEntryPanel;
+    
     private MediaPlayer mediaPlayer;
     private static final int MAX_RETRY_ATTEMPTS = 3;
     private int retryAttempts = 0;
@@ -66,6 +70,44 @@ public class MainMenuController implements Initializable {
         setupButtonHoverEffect(startButton);
         setupButtonHoverEffect(settingsButton);
         setupButtonHoverEffect(quitButton);
+        
+        // Initialize name entry panel
+        if (nameEntryPanel != null) {
+            nameEntryPanel.setManaged(false);
+            nameEntryPanel.setPrefSize(650, 600);
+            nameEntryPanel.setLayoutX(0);
+            nameEntryPanel.setLayoutY(0);
+            nameEntryPanel.setVisible(false);
+            
+            // Set up submit handler
+            nameEntryPanel.setOnSubmit(e -> {
+                // Get name from text field
+                String name = nameEntryPanel.getNameField().getText().trim();
+                if (name.isEmpty()) {
+                    name = "Player";
+                }
+                
+                // Save to GameSettings
+                com.comp2042.model.GameSettings.setPlayerName(name);
+                
+                // Hide panel and start game
+                nameEntryPanel.hideWithAnimation();
+                javafx.application.Platform.runLater(() -> {
+                    startGameAfterNameEntry((Stage) rootPane.getScene().getWindow());
+                });
+            });
+            
+            // Set up close (X) handler - just hide the panel, don't start game
+            nameEntryPanel.setOnClose(e -> {
+                nameEntryPanel.hideWithAnimation();
+            });
+            
+            // Load current player name if available
+            String currentName = com.comp2042.model.GameSettings.getPlayerName();
+            if (currentName != null && !currentName.equals("Player")) {
+                nameEntryPanel.getNameField().setText(currentName);
+            }
+        }
     }
     
     /**
@@ -282,39 +324,12 @@ public class MainMenuController implements Initializable {
 
     @FXML
     private void onStartGame(ActionEvent event) {
-        // Show name entry dialog before starting game
-        showNameEntryDialog((Stage) ((Node) event.getSource()).getScene().getWindow(), () -> {
-            // After name is entered, start the game
+        // Show name entry overlay panel
+        if (nameEntryPanel != null) {
+            nameEntryPanel.showWithAnimation();
+        } else {
+            // Fallback: start game without name entry if panel not available
             startGameAfterNameEntry((Stage) ((Node) event.getSource()).getScene().getWindow());
-        });
-    }
-    
-    private void showNameEntryDialog(Stage parentStage, Runnable onComplete) {
-        try {
-            URL location = getClass().getClassLoader().getResource("com/comp2042/view/NameEntry.fxml");
-            FXMLLoader fxmlLoader = new FXMLLoader(location);
-            Parent root = fxmlLoader.load();
-            
-            Stage nameEntryStage = new Stage();
-            nameEntryStage.setTitle("Enter Your Name");
-            nameEntryStage.setScene(new Scene(root, 400, 300));
-            nameEntryStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
-            nameEntryStage.initOwner(parentStage);
-            nameEntryStage.setResizable(false);
-            
-            nameEntryStage.setOnCloseRequest(e -> {
-                // If user closes without entering name, use default
-                onComplete.run();
-            });
-            
-            // Show dialog and wait for it to close, then start game
-            nameEntryStage.showAndWait();
-            onComplete.run();
-        } catch (Exception e) {
-            System.err.println("Error showing name entry dialog: " + e.getMessage());
-            e.printStackTrace();
-            // If error, just start game anyway
-            onComplete.run();
         }
     }
     

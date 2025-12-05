@@ -80,6 +80,9 @@ public class GuiController implements Initializable {
 
     @FXML
     private GameOverPanel gameOverPanel;
+    
+    @FXML
+    private com.comp2042.view.LeaderboardPanel leaderboardPanel;
 
     @FXML
     private Label scoreLabel;
@@ -180,6 +183,16 @@ public class GuiController implements Initializable {
         gameOverPanel.setPrefSize(650, 600);
         gameOverPanel.setLayoutX(0);
         gameOverPanel.setLayoutY(0);
+        
+        // Setup leaderboard panel
+        if (leaderboardPanel != null) {
+            leaderboardPanel.setManaged(false);
+            leaderboardPanel.setPrefSize(650, 600);
+            leaderboardPanel.setLayoutX(0);
+            leaderboardPanel.setLayoutY(0);
+            leaderboardPanel.setVisible(false);
+            leaderboardPanel.toFront();
+        }
         
         // Setup pause menu
         if (pauseMenuGroup != null) {
@@ -810,7 +823,13 @@ public class GuiController implements Initializable {
         });
         
         gameOverPanel.setOnLeaderboard(e -> {
-            showLeaderboard();
+            if (leaderboardPanel != null) {
+                leaderboardPanel.setOnClose(ev -> {
+                    leaderboardPanel.hideWithAnimation();
+                });
+                leaderboardPanel.toFront();
+                leaderboardPanel.showWithAnimation();
+            }
         });
         
         gameOverPanel.setOnMainMenu(e -> {
@@ -1175,30 +1194,11 @@ public class GuiController implements Initializable {
     }
     
     /**
-     * Shows the leaderboard dialog with top 5 scores.
+     * Shows the leaderboard overlay with top 5 scores.
      */
     public void showLeaderboard() {
-        try {
-            // Load Leaderboard.fxml
-            URL location = getClass().getClassLoader().getResource("com/comp2042/view/Leaderboard.fxml");
-            FXMLLoader fxmlLoader = new FXMLLoader(location);
-            Parent root = fxmlLoader.load();
-            
-            // Create a new stage for the leaderboard dialog
-            Stage leaderboardStage = new Stage();
-            leaderboardStage.setTitle("Leaderboard");
-            leaderboardStage.setScene(new Scene(root, 500, 600));
-            leaderboardStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
-            if (gameBoard != null && gameBoard.getScene() != null) {
-                leaderboardStage.initOwner(gameBoard.getScene().getWindow());
-            }
-            leaderboardStage.setResizable(false);
-            
-            // Show the dialog
-            leaderboardStage.showAndWait();
-        } catch (Exception e) {
-            System.err.println("Error showing leaderboard: " + e.getMessage());
-            e.printStackTrace();
+        if (leaderboardPanel != null) {
+            leaderboardPanel.showWithAnimation();
         }
     }
 }

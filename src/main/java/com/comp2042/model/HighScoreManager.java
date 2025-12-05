@@ -38,6 +38,8 @@ public class HighScoreManager {
     
     /**
      * Saves a new score entry to the leaderboard for the specified game mode.
+     * If a player with the same username (case-sensitive) already exists, their score
+     * will be updated if the new score is higher. Otherwise, a new entry is added.
      * The leaderboard is automatically sorted and limited to the top 10 entries.
      * 
      * @param mode The game mode to save the entry for
@@ -47,8 +49,32 @@ public class HighScoreManager {
         // Load the current leaderboard
         List<ScoreEntry> leaderboard = loadLeaderboard(mode);
         
-        // Add the new entry
-        leaderboard.add(entry);
+        // Check if a player with the same username (case-sensitive) already exists
+        String newPlayerName = entry.getName();
+        ScoreEntry existingEntry = null;
+        int existingIndex = -1;
+        
+        for (int i = 0; i < leaderboard.size(); i++) {
+            ScoreEntry currentEntry = leaderboard.get(i);
+            // Case-sensitive comparison
+            if (currentEntry.getName().equals(newPlayerName)) {
+                existingEntry = currentEntry;
+                existingIndex = i;
+                break;
+            }
+        }
+        
+        if (existingEntry != null) {
+            // Player exists - update score if new score is higher
+            if (entry.getScore() > existingEntry.getScore()) {
+                // Replace the old entry with the new one (higher score)
+                leaderboard.set(existingIndex, entry);
+            }
+            // If new score is lower or equal, do nothing (keep the existing higher score)
+        } else {
+            // New player - add the entry
+            leaderboard.add(entry);
+        }
         
         // Sort the list (descending by score)
         Collections.sort(leaderboard);
@@ -89,17 +115,40 @@ public class HighScoreManager {
     }
     
     /**
-     * Resets the high score to 0 by overwriting the highscore.dat file.
-     * This method is kept for backward compatibility with the old system.
+     * Resets the leaderboard for the specified game mode by clearing all entries.
      * 
-     * @deprecated Consider using leaderboard methods instead
+     * @param mode The game mode to reset the leaderboard for
      */
-    @Deprecated
+    public static void resetLeaderboard(GameMode mode) {
+        File file = new File(mode.getFileName());
+        try {
+            // Delete the leaderboard file if it exists
+            if (file.exists()) {
+                file.delete();
+            }
+            // Create an empty leaderboard file with an empty list
+            try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+                oos.writeObject(new ArrayList<ScoreEntry>());
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to reset leaderboard for " + mode + ": " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Resets the high score/leaderboard.
+     * This method resets the CLASSIC mode leaderboard and also maintains
+     * backward compatibility with the old highscore.dat file.
+     */
     public static void resetHighScore() {
+        // Reset the CLASSIC leaderboard (main leaderboard)
+        resetLeaderboard(GameMode.CLASSIC);
+        
+        // Also reset the old highscore.dat file for backward compatibility
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(HIGHSCORE_FILE))) {
             writer.write("0");
         } catch (IOException e) {
-            System.err.println("Failed to reset high score: " + e.getMessage());
+            System.err.println("Failed to reset high score file: " + e.getMessage());
         }
     }
 }

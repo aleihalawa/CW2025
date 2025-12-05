@@ -37,4 +37,7 @@
         </StackPane.margin>
     </Label>
     
+    <!-- Name Entry Panel Overlay -->
+    <com.comp2042.view.NameEntryPanel fx:id="nameEntryPanel" visible="false" StackPane.alignment="CENTER"/>
+    
 </StackPane>

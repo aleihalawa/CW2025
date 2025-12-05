@@ -1,6 +1,7 @@
 package com.comp2042.view;
 
 import com.comp2042.controller.GameController;
+import com.comp2042.model.GameSettings;
 import com.comp2042.model.HighScoreManager;
 import javafx.animation.ScaleTransition;
 import javafx.event.ActionEvent;
@@ -42,11 +43,12 @@ public class MainMenuController implements Initializable {
     @FXML
     private Label highScoreLabel;
     
+    @FXML
+    private com.comp2042.view.NameEntryPanel nameEntryPanel;
+    
     private MediaPlayer mediaPlayer;
     private static final int MAX_RETRY_ATTEMPTS = 3;
     private int retryAttempts = 0;
-    private final HighScoreManager highScoreManager = new HighScoreManager();
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Dispose any existing media player first (in case of scene reload)
@@ -68,15 +70,58 @@ public class MainMenuController implements Initializable {
         setupButtonHoverEffect(startButton);
         setupButtonHoverEffect(settingsButton);
         setupButtonHoverEffect(quitButton);
+        
+        // Initialize name entry panel
+        if (nameEntryPanel != null) {
+            nameEntryPanel.setManaged(false);
+            nameEntryPanel.setPrefSize(650, 600);
+            nameEntryPanel.setLayoutX(0);
+            nameEntryPanel.setLayoutY(0);
+            nameEntryPanel.setVisible(false);
+            
+            // Set up submit handler
+            nameEntryPanel.setOnSubmit(e -> {
+                // Get name from text field
+                String name = nameEntryPanel.getNameField().getText().trim();
+                if (name.isEmpty()) {
+                    name = "Player";
+                }
+                
+                // Save to GameSettings
+                com.comp2042.model.GameSettings.setPlayerName(name);
+                
+                // Hide panel and start game
+                nameEntryPanel.hideWithAnimation();
+                javafx.application.Platform.runLater(() -> {
+                    startGameAfterNameEntry((Stage) rootPane.getScene().getWindow());
+                });
+            });
+            
+            // Set up close (X) handler - just hide the panel, don't start game
+            nameEntryPanel.setOnClose(e -> {
+                nameEntryPanel.hideWithAnimation();
+            });
+            
+            // Load current player name if available
+            String currentName = com.comp2042.model.GameSettings.getPlayerName();
+            if (currentName != null && !currentName.equals("Player")) {
+                nameEntryPanel.getNameField().setText(currentName);
+            }
+        }
     }
     
     /**
-     * Loads the high score from file and updates the label.
+     * Loads the high score from the leaderboard and updates the label.
      */
     private void loadHighScore() {
         if (highScoreLabel != null) {
-            int highScore = highScoreManager.loadHighScore();
-            highScoreLabel.setText("HIGH SCORE: " + highScore);
+            java.util.List<com.comp2042.model.ScoreEntry> topScores = com.comp2042.model.HighScoreManager.loadLeaderboard(com.comp2042.model.GameMode.CLASSIC);
+            if (topScores.isEmpty()) {
+                highScoreLabel.setText("HIGH SCORE: 0");
+            } else {
+                int topScore = topScores.get(0).getScore();
+                highScoreLabel.setText("HIGH SCORE: " + topScore);
+            }
         }
     }
     
@@ -279,6 +324,16 @@ public class MainMenuController implements Initializable {
 
     @FXML
     private void onStartGame(ActionEvent event) {
+        // Show name entry overlay panel
+        if (nameEntryPanel != null) {
+            nameEntryPanel.showWithAnimation();
+        } else {
+            // Fallback: start game without name entry if panel not available
+            startGameAfterNameEntry((Stage) ((Node) event.getSource()).getScene().getWindow());
+        }
+    }
+    
+    private void startGameAfterNameEntry(Stage stage) {
         // Stop and dispose video player when switching to game
         disposeMediaPlayer();
         
@@ -288,9 +343,6 @@ public class MainMenuController implements Initializable {
             FXMLLoader fxmlLoader = new FXMLLoader(location);
             Parent root = fxmlLoader.load();
             GuiController controller = fxmlLoader.getController();
-
-            // Get the current stage
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
 
             // Create new scene and set it on the stage
             Scene scene = new Scene(root, 650, 600);

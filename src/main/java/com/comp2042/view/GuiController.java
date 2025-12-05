@@ -80,6 +80,9 @@ public class GuiController implements Initializable {
 
     @FXML
     private GameOverPanel gameOverPanel;
+    
+    @FXML
+    private com.comp2042.view.LeaderboardPanel leaderboardPanel;
 
     @FXML
     private Label scoreLabel;
@@ -180,6 +183,16 @@ public class GuiController implements Initializable {
         gameOverPanel.setPrefSize(650, 600);
         gameOverPanel.setLayoutX(0);
         gameOverPanel.setLayoutY(0);
+        
+        // Setup leaderboard panel
+        if (leaderboardPanel != null) {
+            leaderboardPanel.setManaged(false);
+            leaderboardPanel.setPrefSize(650, 600);
+            leaderboardPanel.setLayoutX(0);
+            leaderboardPanel.setLayoutY(0);
+            leaderboardPanel.setVisible(false);
+            leaderboardPanel.toFront();
+        }
         
         // Setup pause menu
         if (pauseMenuGroup != null) {
@@ -804,15 +817,19 @@ public class GuiController implements Initializable {
             }
         }
         
-        // Save high score if this is a new record
-        com.comp2042.model.HighScoreManager highScoreManager = new com.comp2042.model.HighScoreManager();
-        if (highScoreManager.isNewHighScore(finalScore)) {
-            highScoreManager.saveHighScore(finalScore);
-        }
-        
         // Setup button handlers
         gameOverPanel.setOnRestart(e -> {
             newGame(e);
+        });
+        
+        gameOverPanel.setOnLeaderboard(e -> {
+            if (leaderboardPanel != null) {
+                leaderboardPanel.setOnClose(ev -> {
+                    leaderboardPanel.hideWithAnimation();
+                });
+                leaderboardPanel.toFront();
+                leaderboardPanel.showWithAnimation();
+            }
         });
         
         gameOverPanel.setOnMainMenu(e -> {
@@ -1174,5 +1191,14 @@ public class GuiController implements Initializable {
 
         // Play the animation
         sequence.play();
+    }
+    
+    /**
+     * Shows the leaderboard overlay with top 5 scores.
+     */
+    public void showLeaderboard() {
+        if (leaderboardPanel != null) {
+            leaderboardPanel.showWithAnimation();
+        }
     }
 }

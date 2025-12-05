@@ -71,6 +71,9 @@
     <!-- Game Over Panel Overlay -->
     <GameOverPanel fx:id="gameOverPanel" visible="false" StackPane.alignment="CENTER"/>
     
+    <!-- Leaderboard Panel Overlay -->
+    <com.comp2042.view.LeaderboardPanel fx:id="leaderboardPanel" visible="false" StackPane.alignment="CENTER"/>
+    
     <!-- Pause Menu Overlay -->
     <Group fx:id="pauseMenuGroup" visible="false">
         <!-- Dimming overlay -->

@@ -19,12 +19,13 @@ public class GameController implements InputEventListener {
 
     private final Timeline lockTimer;
     
-    private boolean hasBeatenHighScore = false;
-    private int currentHighScore = 0;
-    private final com.comp2042.model.HighScoreManager highScoreManager = new com.comp2042.model.HighScoreManager();
     
     private MediaPlayer backgroundMusic; // Keep MediaPlayer for background music (needs looping)
     private final SoundManager soundManager = SoundManager.getInstance();
+    
+    // Track player's previous best score for personal high score notification
+    private int playerPreviousBestScore = 0;
+    private boolean hasShownPersonalHighScoreNotification = false;
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -33,15 +34,15 @@ public class GameController implements InputEventListener {
         viewGuiController.initGameView(board.getBoardMatrix(), board.getViewData());
         viewGuiController.bindScore(board.getScore());
         
-        // Initialize high score
-        currentHighScore = highScoreManager.loadHighScore();
-        
         // Initialize lock timer: 0.5s delay before locking
         lockTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> lockPieceAndHandleNewBrick()));
         lockTimer.setCycleCount(1);
         
         // Initialize sound manager (pre-loads all sound effects into memory)
         soundManager.initialize();
+        
+        // Load player's previous best score
+        loadPlayerPreviousBestScore();
         
         // Load and play background music
         loadBackgroundMusic();
@@ -224,12 +225,12 @@ public class GameController implements InputEventListener {
             dropCount++;
         }
         
-        // Calculate and apply hard drop score (2 points per cell dropped)
+            // Calculate and apply hard drop score (2 points per cell dropped)
         if (dropCount > 0 && event.getEventSource() == EventSource.USER) {
             int hardDropScore = dropCount * 2;
             board.getScore().add(hardDropScore);
-            // Check for new high score after score update
-            checkHighScore();
+            // Check if player beat their own high score after score update
+            checkPersonalHighScore();
         }
         
         // Play hard drop landing sound effect
@@ -243,11 +244,6 @@ public class GameController implements InputEventListener {
 
     @Override
     public void createNewGame() {
-        // Reset the flag so the next game can trigger the alert again
-        hasBeatenHighScore = false;
-        // Reload the high score to be safe
-        currentHighScore = highScoreManager.loadHighScore();
-        
         // Reload background music if it was disposed (e.g., after going to Settings)
         if (backgroundMusic == null) {
             loadBackgroundMusic();
@@ -256,33 +252,16 @@ public class GameController implements InputEventListener {
             backgroundMusic.play();
         }
         
+        // Reset notification flag for new game
+        hasShownPersonalHighScoreNotification = false;
+        
+        // Reload player's previous best score (in case leaderboard was updated)
+        loadPlayerPreviousBestScore();
+        
         board.newGame();
         viewGuiController.refreshGameBackground(board.getBoardMatrix());
     }
     
-    /**
-     * Checks if the current score has beaten the high score.
-     * Only triggers once per game session.
-     */
-    private void checkHighScore() {
-        int currentScore = board.getScore().scoreProperty().get();
-        // Crucial check: !hasBeatenHighScore ensures this block runs ONLY ONCE per game
-        if (!hasBeatenHighScore && currentScore > currentHighScore) {
-            hasBeatenHighScore = true; // Set the flag immediately so it doesn't fire again
-            
-            // Play high score success sound when notification appears
-            playHighScoreSuccessSound();
-            
-            viewGuiController.showHighScoreNotification();
-            
-            // Save the new high score
-            highScoreManager.saveHighScore(currentScore);
-            currentHighScore = currentScore; // Update the threshold
-            
-            // Optional: Logging
-            System.out.println("High Score notification finished");
-        }
-    }
     /**
      * Handles the situation when a falling piece can no longer move down:
      * - merges it into the background
@@ -338,7 +317,7 @@ public class GameController implements InputEventListener {
                 boolean gameOver = board.createNewBrick();
                 if (gameOver) {
                     playGameOverSound();
-                    viewGuiController.gameOver();
+                    handleGameOver();
                 } else {
                     // Show falling pieces again and refresh brick view to show the new brick
                     viewGuiController.showFallingPieces();
@@ -354,7 +333,7 @@ public class GameController implements InputEventListener {
             boolean gameOver = board.createNewBrick();
             if (gameOver) {
                 playGameOverSound();
-                viewGuiController.gameOver();
+                handleGameOver();
             } else {
                 // Refresh brick view to show the new brick immediately
                 viewGuiController.refreshBrick(board.getViewData());
@@ -384,8 +363,8 @@ public class GameController implements InputEventListener {
     private void applyLineClearScore(ClearRow clearRow) {
         if (clearRow != null && clearRow.getLinesRemovedCount() > 0) {
             board.getScore().add(clearRow.getScoreBonus());
-            // Check for new high score after score update
-            checkHighScore();
+            // Check if player beat their own high score after score update
+            checkPersonalHighScore();
         }
     }
 
@@ -395,8 +374,77 @@ public class GameController implements InputEventListener {
     private void rewardManualDrop(MoveEvent event) {
         if (event.getEventSource() == EventSource.USER) {
             board.getScore().add(1);
-            // Check for new high score after score update
-            checkHighScore();
+            // Check if player beat their own high score after score update
+            checkPersonalHighScore();
         }
+    }
+    
+    /**
+     * Loads the player's previous best score from the leaderboard.
+     */
+    private void loadPlayerPreviousBestScore() {
+        String playerName = com.comp2042.model.GameSettings.getPlayerName();
+        if (playerName == null || playerName.trim().isEmpty()) {
+            playerName = "Player";
+        }
+        
+        // Load leaderboard and find this player's best score
+        java.util.List<com.comp2042.model.ScoreEntry> leaderboard = 
+            com.comp2042.model.HighScoreManager.loadLeaderboard(com.comp2042.model.GameMode.CLASSIC);
+        
+        playerPreviousBestScore = 0;
+        for (com.comp2042.model.ScoreEntry entry : leaderboard) {
+            // Case-sensitive comparison
+            if (entry.getName().equals(playerName)) {
+                playerPreviousBestScore = entry.getScore();
+                break;
+            }
+        }
+    }
+    
+    /**
+     * Checks if the current score beats the player's previous best score.
+     * If so, shows the "NEW HIGH SCORE!" notification (only once per game).
+     */
+    private void checkPersonalHighScore() {
+        // Only check if we haven't shown the notification yet this game
+        if (hasShownPersonalHighScoreNotification) {
+            return;
+        }
+        
+        int currentScore = board.getScore().scoreProperty().get();
+        
+        // Check if current score beats previous best (or if it's their first score)
+        if (currentScore > playerPreviousBestScore) {
+            // Player beat their own high score!
+            hasShownPersonalHighScoreNotification = true;
+            
+            // Play high score success sound
+            playHighScoreSuccessSound();
+            
+            // Show the notification
+            viewGuiController.showHighScoreNotification();
+        }
+    }
+    
+    /**
+     * Handles game over logic: saves score if it qualifies for leaderboard.
+     */
+    private void handleGameOver() {
+        int finalScore = board.getScore().scoreProperty().get();
+        
+        // Check if this score qualifies for the leaderboard
+        // Always save/update the player's score entry
+        // The saveEntry method will handle updating if the player already exists
+        // and will only keep the entry if it qualifies for top 10
+        String playerName = com.comp2042.model.GameSettings.getPlayerName();
+        if (playerName == null || playerName.trim().isEmpty()) {
+            playerName = "Player";
+        }
+        com.comp2042.model.ScoreEntry entry = new com.comp2042.model.ScoreEntry(playerName, finalScore);
+        com.comp2042.model.HighScoreManager.saveEntry(com.comp2042.model.GameMode.CLASSIC, entry);
+        
+        // Show game over panel
+        viewGuiController.gameOver();
     }
 }

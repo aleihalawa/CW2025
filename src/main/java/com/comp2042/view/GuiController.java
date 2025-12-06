@@ -286,6 +286,18 @@ public class GuiController implements Initializable {
                         refreshBrick(downData.getViewData());
                         keyEvent.consume();
                     }
+                    if (keyEvent.getCode() == KeyCode.DIGIT1 || keyEvent.getCode() == KeyCode.NUMPAD1) {
+                        eventListener.onPowerUpEvent(0);
+                        keyEvent.consume();
+                    }
+                    if (keyEvent.getCode() == KeyCode.DIGIT2 || keyEvent.getCode() == KeyCode.NUMPAD2) {
+                        eventListener.onPowerUpEvent(1);
+                        keyEvent.consume();
+                    }
+                    if (keyEvent.getCode() == KeyCode.DIGIT3 || keyEvent.getCode() == KeyCode.NUMPAD3) {
+                        eventListener.onPowerUpEvent(2);
+                        keyEvent.consume();
+                    }
                 }
                 if (keyEvent.getCode() == KeyCode.N) {
                     newGame(null);
@@ -448,6 +460,27 @@ public class GuiController implements Initializable {
             if (isPause.getValue() == Boolean.FALSE && isGameOver.getValue() == Boolean.FALSE) {
                 timeLine.play();
             }
+        }
+    }
+    
+    /**
+     * Pauses the automatic falling timeline.
+     */
+    public void pauseTimeline() {
+        if (timeLine != null && timeLine.getStatus() == javafx.animation.Animation.Status.RUNNING) {
+            timeLine.pause();
+        }
+    }
+    
+    /**
+     * Resumes the automatic falling timeline.
+     */
+    public void resumeTimeline() {
+        if (timeLine != null && 
+            isPause.getValue() == Boolean.FALSE && 
+            isGameOver.getValue() == Boolean.FALSE &&
+            timeLine.getStatus() == javafx.animation.Animation.Status.PAUSED) {
+            timeLine.play();
         }
     }
 
@@ -712,15 +745,44 @@ public class GuiController implements Initializable {
         
         // Loop through the inventory list
         for (com.comp2042.model.PowerUp item : inventory) {
-            // Create a Rectangle (width 20, height 20)
-            Rectangle rect = new Rectangle(20, 20);
-            // Set Fill to getPowerUpColor(item)
-            rect.setFill(getPowerUpColor(item));
-            // Set ArcWidth/ArcHeight to 5
-            rect.setArcWidth(5);
-            rect.setArcHeight(5);
-            // Add it to inventoryPanel
-            inventoryPanel.getChildren().add(rect);
+            if (item == com.comp2042.model.PowerUp.FREEZE) {
+                // Use snowflake image for FREEZE power-up
+                try {
+                    URL snowflakeUrl = getClass().getClassLoader().getResource("snowflake logo.png");
+                    if (snowflakeUrl != null) {
+                        ImageView snowflakeImage = new ImageView(new Image(snowflakeUrl.toExternalForm()));
+                        snowflakeImage.setFitWidth(20);
+                        snowflakeImage.setFitHeight(20);
+                        snowflakeImage.setPreserveRatio(true);
+                        snowflakeImage.setSmooth(true);
+                        inventoryPanel.getChildren().add(snowflakeImage);
+                    } else {
+                        // Fallback to rectangle if image not found
+                        Rectangle rect = new Rectangle(20, 20);
+                        rect.setFill(getPowerUpColor(item));
+                        rect.setArcWidth(5);
+                        rect.setArcHeight(5);
+                        inventoryPanel.getChildren().add(rect);
+                    }
+                } catch (Exception e) {
+                    // Fallback to rectangle if image loading fails
+                    Rectangle rect = new Rectangle(20, 20);
+                    rect.setFill(getPowerUpColor(item));
+                    rect.setArcWidth(5);
+                    rect.setArcHeight(5);
+                    inventoryPanel.getChildren().add(rect);
+                }
+            } else {
+                // Create a Rectangle (width 20, height 20) for other power-ups
+                Rectangle rect = new Rectangle(20, 20);
+                // Set Fill to getPowerUpColor(item)
+                rect.setFill(getPowerUpColor(item));
+                // Set ArcWidth/ArcHeight to 5
+                rect.setArcWidth(5);
+                rect.setArcHeight(5);
+                // Add it to inventoryPanel
+                inventoryPanel.getChildren().add(rect);
+            }
         }
         
         // Empty Slots: If the inventory has fewer than 3 items, fill the remaining slots

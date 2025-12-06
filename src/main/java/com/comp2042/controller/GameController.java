@@ -33,6 +33,9 @@ public class GameController implements InputEventListener {
     // Player name
     private String playerName;
     
+    // Power-up earning threshold
+    private int nextPowerUpThreshold = 100;
+    
     /**
      * Sets the game mode.
      * Also updates ghost piece mirror mode.
@@ -310,6 +313,8 @@ public class GameController implements InputEventListener {
             board.getScore().add(hardDropScore);
             // Check if player beat their own high score after score update
             checkPersonalHighScore();
+            // Check for power-up earning
+            checkPowerUpEarning();
         }
         
         // Play hard drop landing sound effect
@@ -333,6 +338,9 @@ public class GameController implements InputEventListener {
         
         // Reset notification flag for new game
         hasShownPersonalHighScoreNotification = false;
+        
+        // Reset power-up threshold for new game
+        nextPowerUpThreshold = 100;
         
         // Reload player's previous best score (in case leaderboard was updated)
         loadPlayerPreviousBestScore();
@@ -444,6 +452,30 @@ public class GameController implements InputEventListener {
             board.getScore().add(clearRow.getScoreBonus());
             // Check if player beat their own high score after score update
             checkPersonalHighScore();
+            // Check for power-up earning
+            checkPowerUpEarning();
+        }
+    }
+    
+    /**
+     * Checks if the player has earned a power-up based on score threshold.
+     */
+    private void checkPowerUpEarning() {
+        int currentScore = board.getScore().scoreProperty().get();
+        
+        if (currentScore >= nextPowerUpThreshold) {
+            // Pick a random PowerUp type (BOMB, DRILL, or FREEZE)
+            PowerUp[] powerUps = {PowerUp.BOMB, PowerUp.DRILL, PowerUp.FREEZE};
+            PowerUp randomPowerUp = powerUps[(int) (Math.random() * powerUps.length)];
+            
+            // Add to inventory
+            board.addPowerUp(randomPowerUp);
+            
+            // Increase threshold
+            nextPowerUpThreshold += 100;
+            
+            // Update Inventory UI
+            viewGuiController.refreshInventory(board.getInventory());
         }
     }
 
@@ -525,5 +557,69 @@ public class GameController implements InputEventListener {
         
         // Show game over panel
         viewGuiController.gameOver();
+    }
+    
+    @Override
+    public void onPowerUpEvent(int slotIndex) {
+        // Call board.usePowerUp(slotIndex)
+        PowerUp item = board.usePowerUp(slotIndex);
+        
+        // If item is NONE, return
+        if (item == PowerUp.NONE) {
+            return;
+        }
+        
+        // Update UI
+        viewGuiController.refreshInventory(board.getInventory());
+        
+        // Switch Statement for effects
+        switch (item) {
+            case FREEZE:
+                activateFreeze();
+                break;
+            case BOMB:
+                activateBombMode(); // Placeholder
+                break;
+            case DRILL:
+                activateDrill(); // Placeholder
+                break;
+            case NONE:
+            default:
+                break;
+        }
+    }
+    
+    /**
+     * Activates the FREEZE power-up effect.
+     * Pauses automatic falling for 8 seconds while allowing normal movement.
+     */
+    private void activateFreeze() {
+        System.out.println("Freeze Active!");
+        
+        // Pause the automatic falling timeline
+        viewGuiController.pauseTimeline();
+        
+        // Create timer to resume timeline after 8 seconds
+        Timeline freezeTimer = new Timeline(new KeyFrame(Duration.seconds(8), e -> {
+            viewGuiController.resumeTimeline();
+        }));
+        freezeTimer.setCycleCount(1);
+        freezeTimer.play();
+    }
+    
+    /**
+     * Placeholder for BOMB power-up effect.
+     */
+    private void activateBombMode() {
+        // TODO: Implement bomb effect
+        System.out.println("Bomb activated (placeholder)");
+    }
+    
+    /**
+     * Placeholder for DRILL power-up effect.
+     */
+    private void activateDrill() {
+        // TODO: Implement drill effect
+        System.out.println("Drill activated (placeholder)");
     }
 }

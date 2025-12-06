@@ -95,6 +95,11 @@
         </VBox>
     </Group>
     
+    <!-- Frost Overlay - Covers entire screen (last child so it's on top) -->
+    <Pane fx:id="frostOverlay" mouseTransparent="true" visible="false">
+        <Rectangle fx:id="frostVignette"/>
+    </Pane>
+    
     <stylesheets>
         <URL value="@window_style.css"/>
     </stylesheets>

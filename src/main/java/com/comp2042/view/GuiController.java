@@ -9,6 +9,7 @@ import com.comp2042.model.GameMode;
 import com.comp2042.model.GameSettings;
 import com.comp2042.model.Score;
 import com.comp2042.model.ViewData;
+import javafx.animation.AnimationTimer;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.ParallelTransition;
@@ -44,6 +45,10 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
+import javafx.scene.paint.RadialGradient;
+import javafx.scene.paint.Stop;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.StrokeType;
@@ -82,6 +87,12 @@ public class GuiController implements Initializable {
     
     @FXML
     private VBox inventoryPanel;
+    
+    @FXML
+    private Pane frostOverlay;
+    
+    @FXML
+    private Rectangle frostVignette;
 
     @FXML
     private GameOverPanel gameOverPanel;
@@ -165,6 +176,13 @@ public class GuiController implements Initializable {
     private Pane particleContainer;
     private Timeline particleTimeline;
     private final List<Rectangle> activeParticles = new ArrayList<>();
+    
+    // Freeze effect system
+    private Timeline freezeParticleTimeline;
+    private boolean isFrozen = false;
+    private AnimationTimer snowStormTimer;
+    private final java.util.List<Circle> snowParticles = new java.util.ArrayList<>();
+    private Scene gameScene;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -251,6 +269,25 @@ public class GuiController implements Initializable {
         // Add particle container to gameBoard as an overlay
         gameBoard.getChildren().add(particleContainer);
         
+        // Initialize frost overlay to cover entire screen
+        if (frostOverlay != null) {
+            frostOverlay.setManaged(false);
+            frostOverlay.setMouseTransparent(true);
+            // Bind to root StackPane size (650x600)
+            frostOverlay.setPrefSize(650, 600);
+            frostOverlay.setMaxSize(650, 600);
+            
+            // Initialize frost vignette
+            if (frostVignette != null) {
+                frostVignette.widthProperty().bind(frostOverlay.widthProperty());
+                frostVignette.heightProperty().bind(frostOverlay.heightProperty());
+                frostVignette.setFill(Color.TRANSPARENT);
+            }
+        }
+        
+        // Store scene reference for snow storm (will be set when scene is available)
+        // We'll also set it in setFreezeEffect if needed
+        
         // Create grid pattern matching brick size (21px cells)
         createGridPattern(boardWidth, boardHeight);
         
@@ -313,6 +350,11 @@ public class GuiController implements Initializable {
     }
 
     public void initGameView(int[][] boardMatrix, ViewData brick) {
+        // Store board reference if available from eventListener
+        if (eventListener instanceof com.comp2042.controller.GameController) {
+            com.comp2042.controller.GameController gc = (com.comp2042.controller.GameController) eventListener;
+            // We'll need to get board from GameController - for now, we'll pass it differently
+        }
         // Invalidate coordinate cache when initializing new game view
         coordinatesCached = false;
         
@@ -538,6 +580,48 @@ public class GuiController implements Initializable {
         }
     }
     
+    /**
+     * Gets glacier color (shades of ice) for blocks when freeze effect is active.
+     * Uses a desaturated icy palette for immersive winter storm atmosphere.
+     * 
+     * @param brickID The block color ID
+     * @return A glacier/ice color variant
+     */
+    private Color getGlacierColor(int brickID) {
+        if (brickID == 0) {
+            return Color.TRANSPARENT;
+        }
+        // Map different block types to glacier colors (icy shades)
+        switch (brickID) {
+            case 1:
+                return Color.web("#E0FFFF"); // Light Cyan
+            case 2:
+                return Color.web("#AFEEEE"); // Pale Turquoise
+            case 3:
+                return Color.web("#B0C4DE"); // Light Steel Blue
+            case 4:
+                return Color.web("#ADD8E6"); // Light Blue
+            case 5:
+                return Color.WHITE; // Snow
+            case 6:
+                return Color.web("#778899"); // Light Slate Grey
+            case 7:
+                return Color.web("#E0F6FF"); // Light Cyan (variant)
+            default:
+                return Color.WHITE;
+        }
+    }
+    
+    /**
+     * Gets frozen color (shades of Cyan/Blue/White) for blocks when freeze effect is active.
+     * 
+     * @param i The block color ID
+     * @return A frozen color variant
+     */
+    private Paint getFrozenColor(int i) {
+        return getGlacierColor(i);
+    }
+    
     private void createGridPattern(int width, int height) {
         // Create a Pane to hold grid lines
         Pane gridPane = new Pane();
@@ -649,7 +733,14 @@ public class GuiController implements Initializable {
             // Update brick rectangles
             for (int i = 0; i < brickData.length; i++) {
                 for (int j = 0; j < brickData[i].length; j++) {
-                    setRectangleData(brickData[i][j], rectangles[i][j]);
+                    // Check if frozen and use frozen colors
+                    if (isFrozen) {
+                        rectangles[i][j].setFill(getFrozenColor(brickData[i][j]));
+                    } else {
+                        rectangles[i][j].setFill(getFillColor(brickData[i][j]));
+                    }
+                    rectangles[i][j].setArcHeight(9);
+                    rectangles[i][j].setArcWidth(9);
                 }
             }
             
@@ -823,7 +914,12 @@ public class GuiController implements Initializable {
                 for (int row = 0; row < brickData.length && row < 4; row++) {
                     for (int col = 0; col < brickData[row].length && col < 4; col++) {
                         if (brickData[row][col] > 0) {
-                            grid[row][col].setFill(getFillColor(brickData[row][col]));
+                            // Check if frozen and use glacier colors
+                            if (isFrozen) {
+                                grid[row][col].setFill(getGlacierColor(brickData[row][col]));
+                            } else {
+                                grid[row][col].setFill(getFillColor(brickData[row][col]));
+                            }
                             grid[row][col].setArcHeight(9);
                             grid[row][col].setArcWidth(9);
                         }
@@ -849,7 +945,12 @@ public class GuiController implements Initializable {
     }
 
     private void setRectangleData(int color, Rectangle rectangle) {
-        rectangle.setFill(getFillColor(color));
+        // Check if frozen and use glacier colors
+        if (isFrozen) {
+            rectangle.setFill(getGlacierColor(color));
+        } else {
+            rectangle.setFill(getFillColor(color));
+        }
         rectangle.setArcHeight(9);
         rectangle.setArcWidth(9);
     }
@@ -1581,5 +1682,230 @@ public class GuiController implements Initializable {
             activeParticles.remove(particle);
         });
         animation.play();
+    }
+    
+    /**
+     * Sets the freeze visual effect on or off with immersive winter storm atmosphere.
+     * 
+     * @param active true to enable freeze effects, false to disable
+     */
+    public void setFreezeEffect(boolean active) {
+        isFrozen = active;
+        
+        // Ensure we have scene reference
+        if (gameScene == null && gamePanel != null && gamePanel.getScene() != null) {
+            gameScene = gamePanel.getScene();
+        }
+        
+        if (active) {
+            // Activate freeze effects
+            if (frostOverlay != null) {
+                frostOverlay.setVisible(true);
+                
+                // Set frost vignette with RadialGradient (transparent center, icy edges)
+                if (frostVignette != null) {
+                    RadialGradient vignetteGradient = new RadialGradient(
+                        0, 0, 0.5, 0.5, 0.7, true, CycleMethod.NO_CYCLE,
+                        new Stop(0.0, Color.TRANSPARENT),
+                        new Stop(0.5, Color.rgb(200, 240, 255, 0.2)),
+                        new Stop(1.0, Color.rgb(255, 255, 255, 0.4))
+                    );
+                    frostVignette.setFill(vignetteGradient);
+                }
+                
+                // Smooth fade-in transition
+                FadeTransition fadeIn = new FadeTransition(Duration.millis(500), frostOverlay);
+                fadeIn.setFromValue(0.0);
+                fadeIn.setToValue(1.0);
+                fadeIn.play();
+            }
+            
+            // Start snow storm AnimationTimer
+            startSnowStorm();
+            
+            // Apply CSS class to gameBoard
+            if (gameBoard != null) {
+                gameBoard.getStyleClass().add("frozen-theme");
+            }
+            
+            // Immediately refresh colors to show glacier palette
+            if (displayMatrix != null && eventListener != null) {
+                // Trigger refresh by getting current view data
+                com.comp2042.model.ViewData currentView = eventListener.onRotateEvent(
+                    new com.comp2042.events.MoveEvent(com.comp2042.events.EventType.ROTATE, com.comp2042.events.EventSource.THREAD));
+                if (currentView != null) {
+                    refreshBrick(currentView);
+                }
+            }
+            if (displayMatrix != null && gameController != null) {
+                com.comp2042.model.Board currentBoard = ((com.comp2042.controller.GameController) gameController).getBoard();
+                if (currentBoard != null) {
+                    refreshGameBackground(currentBoard.getBoardMatrix());
+                }
+            }
+        } else {
+            // Deactivate freeze effects
+            if (frostOverlay != null) {
+                // Smooth fade-out transition
+                FadeTransition fadeOut = new FadeTransition(Duration.millis(500), frostOverlay);
+                fadeOut.setFromValue(1.0);
+                fadeOut.setToValue(0.0);
+                fadeOut.setOnFinished(e -> {
+                    frostOverlay.setVisible(false);
+                    // Clear all particles after fade
+                    if (frostOverlay != null) {
+                        frostOverlay.getChildren().clear();
+                    }
+                });
+                fadeOut.play();
+            }
+            
+            // Stop snow storm
+            stopSnowStorm();
+            
+            // Remove CSS class
+            if (gameBoard != null) {
+                gameBoard.getStyleClass().remove("frozen-theme");
+            }
+            
+            // Immediately refresh colors to restore normal palette
+            if (displayMatrix != null && eventListener != null) {
+                com.comp2042.model.ViewData currentView = eventListener.onRotateEvent(
+                    new com.comp2042.events.MoveEvent(com.comp2042.events.EventType.ROTATE, com.comp2042.events.EventSource.THREAD));
+                if (currentView != null) {
+                    refreshBrick(currentView);
+                }
+            }
+            if (displayMatrix != null && gameController != null) {
+                com.comp2042.model.Board currentBoard = ((com.comp2042.controller.GameController) gameController).getBoard();
+                if (currentBoard != null) {
+                    refreshGameBackground(currentBoard.getBoardMatrix());
+                }
+            }
+        }
+    }
+    
+    /**
+     * Starts the snow storm AnimationTimer for immersive particle effects.
+     */
+    private void startSnowStorm() {
+        if (snowStormTimer != null) {
+            stopSnowStorm();
+        }
+        
+        snowStormTimer = new AnimationTimer() {
+            @Override
+            public void handle(long now) {
+                // Spawn 1-2 new particles per frame
+                int spawnCount = (Math.random() < 0.5) ? 1 : 2;
+                for (int i = 0; i < spawnCount; i++) {
+                    spawnSnowParticle();
+                }
+                
+                // Update existing particles
+                updateSnowParticles();
+            }
+        };
+        snowStormTimer.start();
+    }
+    
+    /**
+     * Stops the snow storm AnimationTimer and clears particles.
+     */
+    private void stopSnowStorm() {
+        if (snowStormTimer != null) {
+            snowStormTimer.stop();
+            snowStormTimer = null;
+        }
+        
+        // Clear all snow particles
+        if (frostOverlay != null) {
+            for (Circle particle : snowParticles) {
+                frostOverlay.getChildren().remove(particle);
+            }
+        }
+        snowParticles.clear();
+    }
+    
+    /**
+     * Spawns a single snow particle at the top of the screen.
+     */
+    private void spawnSnowParticle() {
+        if (frostOverlay == null || gameScene == null) {
+            return;
+        }
+        
+        // Get screen dimensions
+        double screenWidth = gameScene.getWidth();
+        double screenHeight = gameScene.getHeight();
+        
+        if (screenWidth <= 0 || screenHeight <= 0) {
+            return;
+        }
+        
+        // Create snow particle (Circle)
+        double radius = 1.0 + Math.random() * 2.0; // 1-3px
+        Circle particle = new Circle(radius);
+        
+        // Random opacity between 0.4 and 0.9
+        double opacity = 0.4 + Math.random() * 0.5;
+        particle.setFill(Color.rgb(255, 255, 255, opacity));
+        
+        // Position at top of screen (Y = -10) and random X
+        particle.setLayoutX(Math.random() * screenWidth);
+        particle.setLayoutY(-10);
+        
+        // Store initial properties for animation
+        particle.setUserData(new double[]{2.0 + Math.random() * 3.0, Math.random() * 0.1 - 0.05}); // [speed, wind]
+        
+        // Add to overlay and tracking list
+        frostOverlay.getChildren().add(particle);
+        snowParticles.add(particle);
+    }
+    
+    /**
+     * Updates all snow particles: moves them down and applies wind/sway.
+     */
+    private void updateSnowParticles() {
+        if (gameScene == null || frostOverlay == null) {
+            return;
+        }
+        
+        double screenHeight = gameScene.getHeight();
+        java.util.Iterator<Circle> iterator = snowParticles.iterator();
+        
+        while (iterator.hasNext()) {
+            Circle particle = iterator.next();
+            
+            // Get particle data
+            double[] data = (double[]) particle.getUserData();
+            if (data == null || data.length < 2) {
+                iterator.remove();
+                frostOverlay.getChildren().remove(particle);
+                continue;
+            }
+            
+            double speed = data[0];
+            double wind = data[1];
+            
+            // Move particle down
+            double currentY = particle.getLayoutY();
+            double newY = currentY + speed;
+            
+            // Apply wind/sway using sine wave
+            double currentX = particle.getLayoutX();
+            double time = System.currentTimeMillis() / 1000.0; // Time in seconds
+            double sway = Math.sin(time * 2.0 + currentX * 0.01) * wind;
+            double newX = currentX + sway;
+            
+            particle.setLayoutX(newX);
+            particle.setLayoutY(newY);
+            
+            // Remove if particle is below screen
+            if (newY > screenHeight) {
+                iterator.remove();
+                frostOverlay.getChildren().remove(particle);
+            }
+        }
     }
 }

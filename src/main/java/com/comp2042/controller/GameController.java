@@ -590,17 +590,28 @@ public class GameController implements InputEventListener {
     }
     
     /**
+     * Gets the board (for GUI access).
+     */
+    public Board getBoard() {
+        return board;
+    }
+    
+    /**
      * Activates the FREEZE power-up effect.
      * Pauses automatic falling for 8 seconds while allowing normal movement.
      */
     private void activateFreeze() {
         System.out.println("Freeze Active!");
         
+        // Enable freeze visual effects
+        viewGuiController.setFreezeEffect(true);
+        
         // Pause the automatic falling timeline
         viewGuiController.pauseTimeline();
         
-        // Create timer to resume timeline after 8 seconds
+        // Create timer to resume timeline and disable effects after 8 seconds
         Timeline freezeTimer = new Timeline(new KeyFrame(Duration.seconds(8), e -> {
+            viewGuiController.setFreezeEffect(false);
             viewGuiController.resumeTimeline();
         }));
         freezeTimer.setCycleCount(1);

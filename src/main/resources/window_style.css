@@ -98,3 +98,11 @@
 .pause-menu-button:pressed {
     -fx-background-color: rgba(0, 255, 255, 0.5);
 }
+
+.frozen-theme {
+    -fx-border-color: rgba(255, 255, 255, 0.8) rgba(200, 240, 255, 0.4) rgba(200, 240, 255, 0.4) rgba(255, 255, 255, 0.8);
+    -fx-border-width: 4px;
+    -fx-border-radius: 5px;
+    -fx-effect: dropshadow(gaussian, cyan, 25, 0.6, 0, 0);
+    -fx-background-color: rgba(200, 255, 255, 0.1);
+}

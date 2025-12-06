@@ -25,6 +25,7 @@ public class SimpleBoard implements Board {
     private static final int SPAWN_X = 4;
     private static final int SPAWN_Y = 0;
     private boolean isLocking = false;
+    private final List<PowerUp> inventory = new ArrayList<>();
 
     public SimpleBoard(int width, int height) {
         this.width = width;
@@ -152,7 +153,7 @@ public class SimpleBoard implements Board {
         for (Brick brick : nextBricks) {
             nextBrickShapes.add(brick.getShapeMatrix().get(0));
         }
-        return new ViewData(brickRotator.getCurrentShape(), (int) currentOffset.getX(), (int) currentOffset.getY(), ghostY, nextBrickShapes, this.isLocking);
+        return new ViewData(brickRotator.getCurrentShape(), (int) currentOffset.getX(), (int) currentOffset.getY(), ghostY, nextBrickShapes, this.isLocking, getInventory());
     }
 
     @Override
@@ -179,6 +180,32 @@ public class SimpleBoard implements Board {
         isLocking = false;
         currentGameMatrix = new int[width][height];
         score.reset();
+        inventory.clear();
         createNewBrick();
+    }
+    
+    @Override
+    public void addPowerUp(PowerUp type) {
+        inventory.add(type);
+        // If the list size exceeds 3, remove the oldest item (index 0)
+        if (inventory.size() > 3) {
+            inventory.remove(0);
+        }
+    }
+    
+    @Override
+    public PowerUp usePowerUp(int index) {
+        // Check if the index is valid (bounds check)
+        if (index < 0 || index >= inventory.size()) {
+            return PowerUp.NONE;
+        }
+        // Remove the item and return it
+        return inventory.remove(index);
+    }
+    
+    @Override
+    public List<PowerUp> getInventory() {
+        // Return defensive copy
+        return new ArrayList<>(inventory);
     }
 }

@@ -79,6 +79,9 @@ public class GuiController implements Initializable {
 
     @FXML
     private VBox nextBrickPanel;
+    
+    @FXML
+    private VBox inventoryPanel;
 
     @FXML
     private GameOverPanel gameOverPanel;
@@ -418,6 +421,9 @@ public class GuiController implements Initializable {
         
         // Refresh next brick preview with initial data
         refreshNextBrick(brick.getNextBricks());
+        
+        // Refresh inventory with initial data
+        refreshInventory(brick.getInventory());
     }
 
     /**
@@ -477,6 +483,26 @@ public class GuiController implements Initializable {
                 break;
         }
         return returnPaint;
+    }
+    
+    /**
+     * Gets the color for a power up type.
+     * 
+     * @param type The power up type
+     * @return The color for the power up
+     */
+    private javafx.scene.paint.Paint getPowerUpColor(com.comp2042.model.PowerUp type) {
+        switch (type) {
+            case BOMB:
+                return Color.RED;
+            case DRILL:
+                return Color.GREY;
+            case FREEZE:
+                return Color.CYAN;
+            case NONE:
+            default:
+                return Color.TRANSPARENT;
+        }
     }
     
     private void createGridPattern(int width, int height) {
@@ -633,6 +659,9 @@ public class GuiController implements Initializable {
             
             // Update next brick preview
             refreshNextBrick(brick.getNextBricks());
+            
+            // Update inventory
+            refreshInventory(brick.getInventory());
         }
     }
 
@@ -668,6 +697,44 @@ public class GuiController implements Initializable {
         }
     }
 
+    /**
+     * Refreshes the inventory display with current power ups.
+     * 
+     * @param inventory List of power ups in the inventory
+     */
+    public void refreshInventory(java.util.List<com.comp2042.model.PowerUp> inventory) {
+        if (inventoryPanel == null) {
+            return;
+        }
+        
+        // Clear existing items
+        inventoryPanel.getChildren().clear();
+        
+        // Loop through the inventory list
+        for (com.comp2042.model.PowerUp item : inventory) {
+            // Create a Rectangle (width 20, height 20)
+            Rectangle rect = new Rectangle(20, 20);
+            // Set Fill to getPowerUpColor(item)
+            rect.setFill(getPowerUpColor(item));
+            // Set ArcWidth/ArcHeight to 5
+            rect.setArcWidth(5);
+            rect.setArcHeight(5);
+            // Add it to inventoryPanel
+            inventoryPanel.getChildren().add(rect);
+        }
+        
+        // Empty Slots: If the inventory has fewer than 3 items, fill the remaining slots
+        while (inventoryPanel.getChildren().size() < 3) {
+            Rectangle emptyRect = new Rectangle(20, 20);
+            emptyRect.setFill(Color.TRANSPARENT);
+            emptyRect.setStroke(Color.WHITE);
+            emptyRect.setStrokeWidth(1);
+            emptyRect.setArcWidth(5);
+            emptyRect.setArcHeight(5);
+            inventoryPanel.getChildren().add(emptyRect);
+        }
+    }
+    
     /**
      * Refreshes the next brick preview with new brick data.
      * @param nextBricks List of brick matrices to display (up to 3)

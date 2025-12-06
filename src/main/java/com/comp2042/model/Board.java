@@ -1,4 +1,7 @@
 package com.comp2042.model;
+
+import java.util.List;
+
 /**
  * Defines the public API for the game Board.
  * Implementations hold the game state and logic.
@@ -29,4 +32,10 @@ public interface Board {
     Score getScore();
     /** Resets the board and score for a new game. */
     void newGame();
+    /** Adds a power up to the inventory. */
+    void addPowerUp(PowerUp type);
+    /** Removes and returns the power up at the specified index. */
+    PowerUp usePowerUp(int index);
+    /** Returns a copy of the current inventory. */
+    List<PowerUp> getInventory();
 }

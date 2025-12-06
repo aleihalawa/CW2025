@@ -15,8 +15,9 @@ public final class ViewData {
     private final int ghostY;
     private final List<int[][]> nextBricks;
     private final boolean isLocking;
+    private final List<PowerUp> inventory;
 
-    public ViewData(int[][] brickData, int xPosition, int yPosition, int ghostY, List<int[][]> nextBricks, boolean isLocking) {
+    public ViewData(int[][] brickData, int xPosition, int yPosition, int ghostY, List<int[][]> nextBricks, boolean isLocking, List<PowerUp> inventory) {
         this.brickData = brickData;
         this.xPosition = xPosition;
         this.yPosition = yPosition;
@@ -27,6 +28,8 @@ public final class ViewData {
             this.nextBricks.add(MatrixOperations.copy(brick));
         }
         this.isLocking = isLocking;
+        // Create defensive copy of inventory
+        this.inventory = new ArrayList<>(inventory);
     }
 
     public int[][] getBrickData() {
@@ -58,5 +61,10 @@ public final class ViewData {
 
     public boolean isLocking() {
         return isLocking;
+    }
+    
+    public List<PowerUp> getInventory() {
+        // Return defensive copy
+        return new ArrayList<>(inventory);
     }
 }

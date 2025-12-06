@@ -5,6 +5,7 @@ import com.comp2042.events.EventSource;
 import com.comp2042.events.EventType;
 import com.comp2042.events.MoveEvent;
 import com.comp2042.model.DownData;
+import com.comp2042.model.GameMode;
 import com.comp2042.model.GameSettings;
 import com.comp2042.model.Score;
 import com.comp2042.model.ViewData;
@@ -28,6 +29,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.scene.effect.Glow;
 import javafx.scene.effect.Reflection;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -148,6 +150,18 @@ public class GuiController implements Initializable {
     private boolean isAnimating = false;
     
     private boolean isShowingHighScoreNotification = false;
+    
+    // Track mirror mode for positioning adjustments
+    private boolean isMirrorMode = false;
+    
+    // Board dimensions for flip calculations
+    private static final int BOARD_WIDTH_PX = 10 * 21;  // 210px
+    private static final int BOARD_HEIGHT_PX = 23 * 21; // 483px (23 visible rows)
+    
+    // Particle system for Mirror Mode
+    private Pane particleContainer;
+    private Timeline particleTimeline;
+    private final List<Rectangle> activeParticles = new ArrayList<>();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -224,6 +238,15 @@ public class GuiController implements Initializable {
         gameBoard.setPrefSize(boardWidth, boardHeight);
         gameBoard.setMinSize(boardWidth, boardHeight);
         gameBoard.setMaxSize(boardWidth, boardHeight);
+        
+        // Initialize particle container for Mirror Mode effects
+        particleContainer = new Pane();
+        particleContainer.setManaged(false);
+        particleContainer.setMouseTransparent(true); // Don't interfere with mouse events
+        particleContainer.setVisible(false);
+        particleContainer.setPrefSize(boardWidth, boardHeight);
+        // Add particle container to gameBoard as an overlay
+        gameBoard.getChildren().add(particleContainer);
         
         // Create grid pattern matching brick size (21px cells)
         createGridPattern(boardWidth, boardHeight);
@@ -343,14 +366,44 @@ public class GuiController implements Initializable {
             double cellHeight = BRICK_SIZE + 1;
             
             // 5. Position brickPanel to align with gamePanel grid
-            brickPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
-            brickPanel.setLayoutY(boardOffsetY + ((brick.getyPosition() - 2) * cellHeight));
+            double brickX = boardOffsetX + (brick.getxPosition() * cellWidth);
+            double brickY = boardOffsetY + ((brick.getyPosition() - 2) * cellHeight);
+            
+            // Adjust Y positioning for mirror mode (anti-gravity: bricks fall from bottom to top)
+            if (GameSettings.getSelectedGameMode() == GameMode.MIRROR) {
+                // We need to shift everything UP significantly.
+                // This formula calculates the distance from the bottom row.
+                // (22 - y) means as Y gets bigger (logic falls down), the result gets smaller (visual moves up).
+                double mirrorY = (22 - brick.getyPosition()) * cellHeight;
+                
+                // Manual Calibration: 
+                // If it is still too low, make this number SMALLER (e.g. -600). 
+                // If it is too high, make it LARGER (e.g. -50).
+                double yCorrection = -420.0; // Fine-tuned: shifted down slightly (about 1.5 blocks)
+                
+                brickY = boardOffsetY + mirrorY + yCorrection;
+            }
+            
+            brickPanel.setLayoutX(brickX);
+            brickPanel.setLayoutY(brickY);
             
             // 6. Position ghostPanel at the ghost Y position (same X, different Y)
             // Use the exact same parent and calculation as brickPanel since they're siblings
             if (ghostPanel != null) {
-                ghostPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
-                ghostPanel.setLayoutY(boardOffsetY + ((brick.getGhostY() - 2) * cellHeight));
+                double ghostX = boardOffsetX + (brick.getxPosition() * cellWidth);
+                double ghostY = boardOffsetY + ((brick.getGhostY() - 2) * cellHeight);
+                
+                // Adjust Y positioning for mirror mode (anti-gravity)
+                if (GameSettings.getSelectedGameMode() == GameMode.MIRROR) {
+                    // Apply exactly the same logic to the ghost
+                    double ghostMirrorY = (22 - brick.getGhostY()) * cellHeight;
+                    double yCorrection = -420.0; // Same correction factor - fine-tuned down slightly
+                    
+                    ghostY = boardOffsetY + ghostMirrorY + yCorrection;
+                }
+                
+                ghostPanel.setLayoutX(ghostX);
+                ghostPanel.setLayoutY(ghostY);
             }
         }
         // If scene not attached yet, refreshBrick will handle positioning on first update
@@ -484,13 +537,43 @@ public class GuiController implements Initializable {
             
             // Position brickPanel using cached values
             if (coordinatesCached) {
-                brickPanel.setLayoutX(cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth));
-                brickPanel.setLayoutY(cachedBoardOffsetY + ((brick.getyPosition() - 2) * cachedCellHeight));
+                double brickX = cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth);
+                double brickY = cachedBoardOffsetY + ((brick.getyPosition() - 2) * cachedCellHeight);
+                
+                // Adjust Y positioning for mirror mode (anti-gravity: bricks fall from bottom to top)
+                if (GameSettings.getSelectedGameMode() == GameMode.MIRROR) {
+                    // We need to shift everything UP significantly.
+                    // This formula calculates the distance from the bottom row.
+                    // (22 - y) means as Y gets bigger (logic falls down), the result gets smaller (visual moves up).
+                    double mirrorY = (22 - brick.getyPosition()) * cachedCellHeight;
+                    
+                    // Manual Calibration: 
+                    // If it is still too low, make this number SMALLER (e.g. -600). 
+                    // If it is too high, make it LARGER (e.g. -50).
+                    double yCorrection = -420.0; // Fine-tuned: shifted down slightly (about 1.5 blocks)
+                    
+                    brickY = cachedBoardOffsetY + mirrorY + yCorrection;
+                }
+                
+                brickPanel.setLayoutX(brickX);
+                brickPanel.setLayoutY(brickY);
                 
                 // Position ghostPanel at the ghost Y position
                 if (ghostPanel != null && ghostRectangles != null) {
-                    ghostPanel.setLayoutX(cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth));
-                    ghostPanel.setLayoutY(cachedBoardOffsetY + ((brick.getGhostY() - 2) * cachedCellHeight));
+                    double ghostX = cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth);
+                    double ghostY = cachedBoardOffsetY + ((brick.getGhostY() - 2) * cachedCellHeight);
+                    
+                    // Adjust Y positioning for mirror mode (anti-gravity)
+                    if (GameSettings.getSelectedGameMode() == GameMode.MIRROR) {
+                        // Apply exactly the same logic to the ghost
+                        double ghostMirrorY = (22 - brick.getGhostY()) * cachedCellHeight;
+                        double yCorrection = -420.0; // Same correction factor - fine-tuned down slightly
+                        
+                        ghostY = cachedBoardOffsetY + ghostMirrorY + yCorrection;
+                    }
+                    
+                    ghostPanel.setLayoutX(ghostX);
+                    ghostPanel.setLayoutY(ghostY);
                 }
             }
             
@@ -1200,5 +1283,174 @@ public class GuiController implements Initializable {
         if (leaderboardPanel != null) {
             leaderboardPanel.showWithAnimation();
         }
+    }
+    
+    /**
+     * Sets mirror mode on or off. When active, flips the gameboard vertically
+     * so bricks appear to fall from bottom to top (anti-gravity).
+     * Also enables neon particle trails rising upward along the board edges.
+     * 
+     * @param active true to enable mirror mode, false to disable
+     */
+    public void setMirrorMode(boolean active) {
+        isMirrorMode = active;
+        if (active) {
+            // Flip gameboard vertically only (Y-axis flip for anti-gravity)
+            if (gamePanel != null) {
+                gamePanel.setScaleX(1.0);  // Keep X normal
+                gamePanel.setScaleY(-1.0); // Flip Y vertically
+            }
+            if (ghostPanel != null) {
+                ghostPanel.setScaleX(1.0);
+                ghostPanel.setScaleY(-1.0);
+            }
+            if (brickPanel != null) {
+                brickPanel.setScaleX(1.0);
+                brickPanel.setScaleY(-1.0);
+            }
+            
+            // Enable particle trails
+            startParticleTrails();
+        } else {
+            // Reset to normal
+            if (gamePanel != null) {
+                gamePanel.setScaleX(1.0);
+                gamePanel.setScaleY(1.0);
+            }
+            if (ghostPanel != null) {
+                ghostPanel.setScaleX(1.0);
+                ghostPanel.setScaleY(1.0);
+            }
+            if (brickPanel != null) {
+                brickPanel.setScaleX(1.0);
+                brickPanel.setScaleY(1.0);
+            }
+            
+            // Disable particle trails
+            stopParticleTrails();
+        }
+    }
+    
+    /**
+     * Starts the neon particle trail animation for Mirror Mode.
+     * Particles rise upward along the left and right edges of the board.
+     */
+    private void startParticleTrails() {
+        if (particleContainer == null || gameBoard == null) {
+            return;
+        }
+        
+        // Make particle container visible and position it
+        particleContainer.setVisible(true);
+        particleContainer.setLayoutX(0);
+        particleContainer.setLayoutY(0);
+        particleContainer.setPrefSize(BOARD_WIDTH_PX, BOARD_HEIGHT_PX);
+        
+        // Ensure particle container is on top
+        particleContainer.toFront();
+        
+        // Create timeline to spawn particles continuously
+        particleTimeline = new Timeline(new KeyFrame(
+            Duration.millis(50), // Spawn a particle every 50ms (much more frequent)
+            e -> spawnParticle()
+        ));
+        particleTimeline.setCycleCount(Timeline.INDEFINITE);
+        particleTimeline.play();
+    }
+    
+    /**
+     * Stops the particle trail animation and clears all particles.
+     */
+    private void stopParticleTrails() {
+        if (particleTimeline != null) {
+            particleTimeline.stop();
+            particleTimeline = null;
+        }
+        
+        if (particleContainer != null) {
+            particleContainer.getChildren().clear();
+            particleContainer.setVisible(false);
+        }
+        
+        activeParticles.clear();
+    }
+    
+    /**
+     * Spawns a single neon particle at the bottom edge (left or right side).
+     * The particle will rise upward and fade out.
+     */
+    private void spawnParticle() {
+        if (particleContainer == null || gameBoard == null) {
+            return;
+        }
+        
+        // Spawn particles on both edges more frequently
+        // Randomly choose left or right edge, with chance to spawn on both
+        boolean spawnLeft = Math.random() < 0.6; // 60% chance for left
+        boolean spawnRight = Math.random() < 0.6; // 60% chance for right (can spawn both)
+        
+        // Particle size (small neon dots)
+        double particleSize = 2 + Math.random() * 3; // 2-5 pixels (slightly larger)
+        
+        // Random neon color (cyan, blue, or purple)
+        Color[] neonColors = {
+            Color.CYAN,
+            Color.web("#00ffff"), // Bright cyan
+            Color.web("#0080ff"), // Bright blue
+            Color.web("#8000ff"), // Bright purple
+            Color.web("#ff00ff")  // Magenta
+        };
+        Color particleColor = neonColors[(int)(Math.random() * neonColors.length)];
+        
+        // Spawn on left edge if selected
+        if (spawnLeft) {
+            spawnParticleAtPosition(0 + Math.random() * 8, particleSize, particleColor);
+        }
+        
+        // Spawn on right edge if selected
+        if (spawnRight) {
+            spawnParticleAtPosition(BOARD_WIDTH_PX - 8 - Math.random() * 8, particleSize, particleColor);
+        }
+    }
+    
+    /**
+     * Helper method to spawn a particle at a specific X position.
+     */
+    private void spawnParticleAtPosition(double xPos, double particleSize, Color particleColor) {
+        // Create particle rectangle
+        Rectangle particle = new Rectangle(particleSize, particleSize);
+        particle.setFill(particleColor);
+        
+        // Add glow effect
+        Glow glow = new Glow(0.8);
+        particle.setEffect(glow);
+        
+        // Position at bottom of board
+        // In Mirror Mode, the board is flipped, so visual bottom is at y=0
+        double yPos = 0; // Start at visual bottom (which is top after flip)
+        
+        particle.setLayoutX(xPos);
+        particle.setLayoutY(yPos);
+        
+        // Add to container
+        particleContainer.getChildren().add(particle);
+        activeParticles.add(particle);
+        
+        // Animate particle rising upward (in Mirror Mode, up means negative Y)
+        TranslateTransition translate = new TranslateTransition(Duration.millis(2000 + Math.random() * 1000), particle);
+        translate.setByY(-BOARD_HEIGHT_PX - 50); // Move upward beyond the board
+        translate.setInterpolator(javafx.animation.Interpolator.EASE_OUT);
+        
+        FadeTransition fade = new FadeTransition(Duration.millis(2000 + Math.random() * 1000), particle);
+        fade.setFromValue(1.0);
+        fade.setToValue(0.0);
+        fade.setInterpolator(javafx.animation.Interpolator.EASE_OUT);
+        
+        ParallelTransition animation = new ParallelTransition(translate, fade);
+        animation.setOnFinished(e -> {
+            particleContainer.getChildren().remove(particle);
+            activeParticles.remove(particle);
+        });
+        animation.play();
     }
 }

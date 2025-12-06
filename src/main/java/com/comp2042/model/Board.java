@@ -13,6 +13,8 @@ public interface Board {
     boolean moveBrickRight();
     /** Rotates the current brick, returns false if conflict. */
     boolean rotateLeftBrick();
+    /** Rotates the current brick in the opposite direction, returns false if conflict. */
+    boolean rotateRightBrick();
     /** Creates a new brick at the spawn point, returns true if it conflicts immediately (game over). */
     boolean createNewBrick();
     /** Returns the raw game matrix for rendering. */

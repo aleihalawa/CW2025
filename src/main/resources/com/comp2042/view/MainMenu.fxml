@@ -27,7 +27,7 @@
             <Insets top="180"/>
         </padding>
         <Button fx:id="startButton" text="START" onAction="#onStartGame" styleClass="menu-button"/>
-        <Button fx:id="gameModeButton" text="SELECT GAME MODE" onAction="#onSelectGameMode" styleClass="menu-button"/>
+        <Button fx:id="gameModeButton" text="GAME MODES" onAction="#onSelectGameMode" styleClass="menu-button"/>
         <Button fx:id="settingsButton" text="SETTINGS" onAction="#onSettings" styleClass="menu-button"/>
         <Button fx:id="quitButton" text="QUIT" onAction="#onQuit" styleClass="menu-button"/>
     </VBox>

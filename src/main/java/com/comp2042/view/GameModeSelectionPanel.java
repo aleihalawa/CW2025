@@ -51,7 +51,26 @@ public class GameModeSelectionPanel extends Pane {
         contentContainer.setPrefSize(580, 400);
         contentContainer.setLayoutX((650 - 580) / 2.0);
         contentContainer.setLayoutY((600 - 400) / 2.0);
-        contentContainer.setStyle("-fx-background-color: rgba(0, 0, 0, 0.9); -fx-border-color: #00ffff; -fx-border-width: 3px; -fx-border-radius: 10px; -fx-background-radius: 10px;");
+        contentContainer.setStyle("-fx-background-color: transparent; -fx-border-color: #00ffff; -fx-border-width: 3px; -fx-border-radius: 10px; -fx-background-radius: 10px;");
+        
+        // Load and add background image
+        URL backgroundUrl = getClass().getClassLoader().getResource("gamemode panel background.png");
+        if (backgroundUrl != null) {
+            ImageView backgroundImageView = new ImageView();
+            Image backgroundImage = new Image(backgroundUrl.toExternalForm());
+            backgroundImageView.setImage(backgroundImage);
+            backgroundImageView.setFitWidth(580);
+            backgroundImageView.setFitHeight(400);
+            backgroundImageView.setPreserveRatio(false);
+            backgroundImageView.setSmooth(true);
+            backgroundImageView.setOpacity(1.0);
+            // Add background as first child so it's behind everything
+            contentContainer.getChildren().add(backgroundImageView);
+        } else {
+            System.err.println("Could not find gamemode panel background.png in resources");
+            // Fallback to dark background if image not found
+            contentContainer.setStyle("-fx-background-color: rgba(0, 0, 0, 0.9); -fx-border-color: #00ffff; -fx-border-width: 3px; -fx-border-radius: 10px; -fx-background-radius: 10px;");
+        }
         
         // Create VBox for main content
         contentPane = new VBox(30);
@@ -85,14 +104,15 @@ public class GameModeSelectionPanel extends Pane {
         gameModeContainer.setAlignment(javafx.geometry.Pos.CENTER);
         gameModeContainer.setPrefHeight(250);
         
-        // Load and create image views for each game mode
-        classicContainer = createGameModeButton("Classic_gamemode.png", GameMode.CLASSIC);
-        mirrorContainer = createGameModeButton("Mirror_gamemode.png", GameMode.MIRROR);
-        powerupsContainer = createGameModeButton("Powerups_gamemode.png", GameMode.POWERUPS);
+        // Load and create image views for each game mode with new image files
+        classicContainer = createGameModeButton("classic gamemode.png", GameMode.CLASSIC);
+        mirrorContainer = createGameModeButton("mirror_gamemode (2).png", GameMode.MIRROR);
+        powerupsContainer = createGameModeButton("power ups gamemode.png", GameMode.POWERUPS);
         
         gameModeContainer.getChildren().addAll(classicContainer, mirrorContainer, powerupsContainer);
         
         contentPane.getChildren().addAll(titleLabel, gameModeContainer);
+        // Add contentPane and closeButton after background (background is already added first)
         contentContainer.getChildren().addAll(contentPane, closeButton);
         getChildren().add(contentContainer);
         
@@ -106,40 +126,37 @@ public class GameModeSelectionPanel extends Pane {
     private StackPane createGameModeButton(String imagePath, GameMode mode) {
         ImageView imageView = new ImageView();
         
+        // Determine size based on mode - Mirror needs to be slightly larger
+        int imageWidth = 160;
+        int imageHeight = 200;
+        if (mode == GameMode.MIRROR) {
+            imageWidth = 180;
+            imageHeight = 225;
+        }
+        
         // Load image with caching enabled
         URL imageUrl = getClass().getClassLoader().getResource(imagePath);
         if (imageUrl != null) {
             // Load image with background loading and caching
-            Image image = new Image(imageUrl.toExternalForm(), 160, 200, true, true, true);
+            Image image = new Image(imageUrl.toExternalForm(), imageWidth, imageHeight, true, true, true);
             imageView.setImage(image);
         } else {
             System.err.println("Could not find " + imagePath + " in resources");
         }
         
         // Set size - reduced to fit 3 images horizontally
-        imageView.setFitWidth(160);
-        imageView.setFitHeight(200);
+        imageView.setFitWidth(imageWidth);
+        imageView.setFitHeight(imageHeight);
         imageView.setPreserveRatio(true);
         imageView.setSmooth(false); // Disable smooth rendering for better performance
         imageView.setCache(true); // Enable caching
         imageView.setCacheHint(javafx.scene.CacheHint.SPEED); // Optimize for speed
         
-        // Create border rectangle (only visible on hover)
-        Rectangle borderRect = new Rectangle(160, 200);
-        borderRect.setFill(javafx.scene.paint.Color.TRANSPARENT);
-        borderRect.setStroke(javafx.scene.paint.Color.CYAN);
-        borderRect.setStrokeWidth(3);
-        borderRect.setArcWidth(5);
-        borderRect.setArcHeight(5);
-        borderRect.setOpacity(0);
-        borderRect.setCache(true);
-        borderRect.setCacheHint(javafx.scene.CacheHint.SPEED);
-        
         // Wrap in StackPane
         StackPane container = new StackPane();
-        container.setPrefSize(160, 200);
-        container.setMaxSize(160, 200);
-        container.getChildren().addAll(imageView, borderRect);
+        container.setPrefSize(imageWidth, imageHeight);
+        container.setMaxSize(imageWidth, imageHeight);
+        container.getChildren().add(imageView);
         container.setStyle("-fx-background-color: transparent;");
         container.setCache(true);
         container.setCacheHint(javafx.scene.CacheHint.SPEED);
@@ -153,13 +170,11 @@ public class GameModeSelectionPanel extends Pane {
         container.setOnMouseEntered(e -> {
             container.setScaleX(1.08);
             container.setScaleY(1.08);
-            borderRect.setOpacity(1.0);
         });
         
         container.setOnMouseExited(e -> {
             container.setScaleX(1.0);
             container.setScaleY(1.0);
-            borderRect.setOpacity(0.0);
         });
         
         // Simple click effect - no animation needed
@@ -187,13 +202,44 @@ public class GameModeSelectionPanel extends Pane {
     }
     
     /**
-     * Handles game mode selection.
+     * Handles game mode selection with visual feedback.
      */
     private void selectGameMode(GameMode mode) {
-        if (onModeSelectedHandler != null) {
-            onModeSelectedHandler.accept(mode);
+        // Find the selected container and show selection animation
+        StackPane selectedContainer = null;
+        if (mode == GameMode.CLASSIC) {
+            selectedContainer = classicContainer;
+        } else if (mode == GameMode.MIRROR) {
+            selectedContainer = mirrorContainer;
+        } else if (mode == GameMode.POWERUPS) {
+            selectedContainer = powerupsContainer;
         }
-        hideWithAnimation();
+        
+        // Show selection animation
+        if (selectedContainer != null) {
+            // Quick pulse animation to show selection
+            ScaleTransition pulse = new ScaleTransition(Duration.millis(150), selectedContainer);
+            pulse.setFromX(1.0);
+            pulse.setFromY(1.0);
+            pulse.setToX(1.15);
+            pulse.setToY(1.15);
+            pulse.setAutoReverse(true);
+            pulse.setCycleCount(2);
+            pulse.setOnFinished(e -> {
+                // After animation, close panel and notify handler
+                if (onModeSelectedHandler != null) {
+                    onModeSelectedHandler.accept(mode);
+                }
+                hideWithAnimation();
+            });
+            pulse.play();
+        } else {
+            // Fallback if container not found
+            if (onModeSelectedHandler != null) {
+                onModeSelectedHandler.accept(mode);
+            }
+            hideWithAnimation();
+        }
     }
     
     /**

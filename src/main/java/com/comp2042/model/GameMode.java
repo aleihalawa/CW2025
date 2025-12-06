@@ -5,7 +5,8 @@ package com.comp2042.model;
  */
 public enum GameMode {
     CLASSIC("leaderboard_classic.dat"),
-    INVERTED("leaderboard_inverted.dat");
+    MIRROR("leaderboard_mirror.dat"),
+    POWERUPS("leaderboard_powerup.dat");
     
     private final String fileName;
     

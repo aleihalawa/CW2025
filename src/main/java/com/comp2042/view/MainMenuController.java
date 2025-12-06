@@ -2,7 +2,6 @@ package com.comp2042.view;
 
 import com.comp2042.controller.GameController;
 import com.comp2042.model.GameSettings;
-import com.comp2042.model.HighScoreManager;
 import javafx.animation.ScaleTransition;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -44,7 +43,13 @@ public class MainMenuController implements Initializable {
     private Label highScoreLabel;
     
     @FXML
-    private com.comp2042.view.NameEntryPanel nameEntryPanel;
+    private NameEntryPanel nameEntryPanel;
+    
+    @FXML
+    private com.comp2042.view.GameModeSelectionPanel gameModeSelectionPanel;
+    
+    @FXML
+    private Button gameModeButton;
     
     private MediaPlayer mediaPlayer;
     private static final int MAX_RETRY_ATTEMPTS = 3;
@@ -66,11 +71,6 @@ public class MainMenuController implements Initializable {
         // Load and display high score
         loadHighScore();
         
-        // Add hover effects to all buttons
-        setupButtonHoverEffect(startButton);
-        setupButtonHoverEffect(settingsButton);
-        setupButtonHoverEffect(quitButton);
-        
         // Initialize name entry panel
         if (nameEntryPanel != null) {
             nameEntryPanel.setManaged(false);
@@ -78,36 +78,60 @@ public class MainMenuController implements Initializable {
             nameEntryPanel.setLayoutX(0);
             nameEntryPanel.setLayoutY(0);
             nameEntryPanel.setVisible(false);
+            nameEntryPanel.toFront();
             
             // Set up submit handler
             nameEntryPanel.setOnSubmit(e -> {
-                // Get name from text field
                 String name = nameEntryPanel.getNameField().getText().trim();
                 if (name.isEmpty()) {
                     name = "Player";
                 }
-                
-                // Save to GameSettings
-                com.comp2042.model.GameSettings.setPlayerName(name);
-                
-                // Hide panel and start game
-                nameEntryPanel.hideWithAnimation();
-                javafx.application.Platform.runLater(() -> {
-                    startGameAfterNameEntry((Stage) rootPane.getScene().getWindow());
-                });
+                GameSettings.setPlayerName(name);
+                startGameWithName(name);
             });
             
-            // Set up close (X) handler - just hide the panel, don't start game
+            // Set up close handler
             nameEntryPanel.setOnClose(e -> {
                 nameEntryPanel.hideWithAnimation();
             });
             
-            // Load current player name if available
-            String currentName = com.comp2042.model.GameSettings.getPlayerName();
-            if (currentName != null && !currentName.equals("Player")) {
-                nameEntryPanel.getNameField().setText(currentName);
+            // Pre-fill with saved name if available
+            String savedName = GameSettings.getPlayerName();
+            if (savedName != null && !savedName.equals("Player")) {
+                nameEntryPanel.getNameField().setText(savedName);
             }
         }
+        
+        // Initialize game mode selection panel
+        if (gameModeSelectionPanel != null) {
+            gameModeSelectionPanel.setManaged(false);
+            gameModeSelectionPanel.setPrefSize(650, 600);
+            gameModeSelectionPanel.setLayoutX(0);
+            gameModeSelectionPanel.setLayoutY(0);
+            gameModeSelectionPanel.setVisible(false);
+            gameModeSelectionPanel.toFront();
+            
+            // Set up mode selection handler
+            gameModeSelectionPanel.setOnModeSelected(selectedMode -> {
+                if (selectedMode != null) {
+                    GameSettings.setSelectedGameMode(selectedMode);
+                    System.out.println("Game mode selected: " + selectedMode);
+                    // Update high score display for the selected game mode
+                    loadHighScore();
+                }
+            });
+            
+            // Set up close handler
+            gameModeSelectionPanel.setOnClose(e -> {
+                gameModeSelectionPanel.hideWithAnimation();
+            });
+        }
+        
+        // Add hover effects to all buttons
+        setupButtonHoverEffect(startButton);
+        setupButtonHoverEffect(gameModeButton);
+        setupButtonHoverEffect(settingsButton);
+        setupButtonHoverEffect(quitButton);
     }
     
     /**
@@ -115,7 +139,9 @@ public class MainMenuController implements Initializable {
      */
     private void loadHighScore() {
         if (highScoreLabel != null) {
-            java.util.List<com.comp2042.model.ScoreEntry> topScores = com.comp2042.model.HighScoreManager.loadLeaderboard(com.comp2042.model.GameMode.CLASSIC);
+            // Load high score for the currently selected game mode
+            com.comp2042.model.GameMode currentMode = com.comp2042.model.GameSettings.getSelectedGameMode();
+            java.util.List<com.comp2042.model.ScoreEntry> topScores = com.comp2042.model.HighScoreManager.loadLeaderboard(currentMode);
             if (topScores.isEmpty()) {
                 highScoreLabel.setText("HIGH SCORE: 0");
             } else {
@@ -324,16 +350,21 @@ public class MainMenuController implements Initializable {
 
     @FXML
     private void onStartGame(ActionEvent event) {
-        // Show name entry overlay panel
+        // Show name entry panel
         if (nameEntryPanel != null) {
             nameEntryPanel.showWithAnimation();
-        } else {
-            // Fallback: start game without name entry if panel not available
-            startGameAfterNameEntry((Stage) ((Node) event.getSource()).getScene().getWindow());
         }
     }
     
-    private void startGameAfterNameEntry(Stage stage) {
+    @FXML
+    private void onSelectGameMode(ActionEvent event) {
+        // Show game mode selection panel
+        if (gameModeSelectionPanel != null) {
+            gameModeSelectionPanel.showWithAnimation();
+        }
+    }
+    
+    private void startGameWithName(String name) {
         // Stop and dispose video player when switching to game
         disposeMediaPlayer();
         
@@ -344,12 +375,17 @@ public class MainMenuController implements Initializable {
             Parent root = fxmlLoader.load();
             GuiController controller = fxmlLoader.getController();
 
+            // Get the current stage
+            Stage stage = (Stage) rootPane.getScene().getWindow();
+
             // Create new scene and set it on the stage
             Scene scene = new Scene(root, 650, 600);
             stage.setScene(scene);
 
-            // Initialize the game controller
-            new GameController(controller);
+            // Initialize the game controller and set player name and game mode
+            GameController gameController = new GameController(controller);
+            gameController.setPlayerName(name);
+            gameController.setGameMode(GameSettings.getSelectedGameMode());
         } catch (Exception e) {
             e.printStackTrace();
         }

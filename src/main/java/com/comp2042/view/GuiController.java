@@ -30,6 +30,8 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.scene.effect.BoxBlur;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.Glow;
 import javafx.scene.effect.Reflection;
 import javafx.scene.input.KeyCode;
@@ -145,6 +147,9 @@ public class GuiController implements Initializable {
     private Rectangle[][] ghostRectangles;
     
     private final List<Rectangle[][]> nextBrickGrids = new ArrayList<>();
+    
+    // Store last ViewData to update colors without changing brick shape
+    private ViewData lastViewData;
 
     private Timeline timeLine;
     
@@ -391,7 +396,13 @@ public class GuiController implements Initializable {
                 Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
                 // Ghost piece: no fill, only thin outline in brick color with neon glow
                 rectangle.setFill(Color.TRANSPARENT);
-                Paint brickColor = getFillColor(brickData[i][j]);
+                // Match brick color (frozen or normal)
+                Paint brickColor;
+                if (isFrozen) {
+                    brickColor = getGlacierColor(brickData[i][j]);
+                } else {
+                    brickColor = getFillColor(brickData[i][j]);
+                }
                 if (brickColor instanceof Color) {
                     rectangle.setStroke((Color) brickColor);
                     rectangle.setStrokeWidth(1.0); // Thin outline
@@ -478,6 +489,9 @@ public class GuiController implements Initializable {
         
         // Refresh inventory with initial data
         refreshInventory(brick.getInventory());
+        
+        // Store initial ViewData for color updates during freeze
+        lastViewData = brick;
     }
 
     /**
@@ -581,34 +595,35 @@ public class GuiController implements Initializable {
     }
     
     /**
-     * Gets glacier color (shades of ice) for blocks when freeze effect is active.
-     * Uses a desaturated icy palette for immersive winter storm atmosphere.
+     * Gets glacier color (white and cyan only) for blocks when freeze effect is active.
+     * Returns translucent white and cyan colors.
      * 
      * @param brickID The block color ID
-     * @return A glacier/ice color variant
+     * @return A translucent white or cyan color variant
      */
     private Color getGlacierColor(int brickID) {
         if (brickID == 0) {
             return Color.TRANSPARENT;
         }
-        // Map different block types to glacier colors (icy shades)
+        // Map different block types to white or cyan (translucent)
+        // Alternate between white and cyan for variety
         switch (brickID) {
             case 1:
-                return Color.web("#E0FFFF"); // Light Cyan
+                return Color.rgb(0, 255, 255, 0.6); // Translucent Cyan
             case 2:
-                return Color.web("#AFEEEE"); // Pale Turquoise
+                return Color.rgb(255, 255, 255, 0.6); // Translucent White
             case 3:
-                return Color.web("#B0C4DE"); // Light Steel Blue
+                return Color.rgb(0, 255, 255, 0.6); // Translucent Cyan
             case 4:
-                return Color.web("#ADD8E6"); // Light Blue
+                return Color.rgb(255, 255, 255, 0.6); // Translucent White
             case 5:
-                return Color.WHITE; // Snow
+                return Color.rgb(0, 255, 255, 0.6); // Translucent Cyan
             case 6:
-                return Color.web("#778899"); // Light Slate Grey
+                return Color.rgb(255, 255, 255, 0.6); // Translucent White
             case 7:
-                return Color.web("#E0F6FF"); // Light Cyan (variant)
+                return Color.rgb(0, 255, 255, 0.6); // Translucent Cyan
             default:
-                return Color.WHITE;
+                return Color.rgb(255, 255, 255, 0.6); // Translucent White
         }
     }
     
@@ -664,6 +679,9 @@ public class GuiController implements Initializable {
     }
 
     public void refreshBrick(ViewData brick) {
+        // Store the current ViewData for color updates during freeze
+        lastViewData = brick;
+        
         if (isPause.getValue() == Boolean.FALSE) {
             // Cache expensive coordinate calculations - only recalculate if scene changes
             if (!coordinatesCached || gamePanel.getScene() == null || brickPanel.getParent() == null) {
@@ -733,9 +751,9 @@ public class GuiController implements Initializable {
             // Update brick rectangles
             for (int i = 0; i < brickData.length; i++) {
                 for (int j = 0; j < brickData[i].length; j++) {
-                    // Check if frozen and use frozen colors
+                    // Check if frozen and use glacier colors
                     if (isFrozen) {
-                        rectangles[i][j].setFill(getFrozenColor(brickData[i][j]));
+                        rectangles[i][j].setFill(getGlacierColor(brickData[i][j]));
                     } else {
                         rectangles[i][j].setFill(getFillColor(brickData[i][j]));
                     }
@@ -754,7 +772,13 @@ public class GuiController implements Initializable {
                                 // Show ghost piece where brick has blocks, with thin outline in brick color
                                 ghostRectangles[i][j].setVisible(true);
                                 ghostRectangles[i][j].setFill(Color.TRANSPARENT);
-                                Paint brickColor = getFillColor(brickValue);
+                                // Match brick color (frozen or normal)
+                                Paint brickColor;
+                                if (isFrozen) {
+                                    brickColor = getGlacierColor(brickValue);
+                                } else {
+                                    brickColor = getFillColor(brickValue);
+                                }
                                 if (brickColor instanceof Color) {
                                     ghostRectangles[i][j].setStroke((Color) brickColor);
                                     ghostRectangles[i][j].setStrokeWidth(1.0); // Thin outline
@@ -953,6 +977,92 @@ public class GuiController implements Initializable {
         }
         rectangle.setArcHeight(9);
         rectangle.setArcWidth(9);
+    }
+    
+    /**
+     * Updates only the colors of existing brick rectangles without changing their shape or position.
+     * This is used when freeze effect activates/deactivates to avoid changing the brick shape.
+     */
+    private void updateBrickColors() {
+        if (rectangles == null) {
+            return;
+        }
+        
+        // Use the last ViewData that was displayed to avoid changing brick shape/rotation
+        if (lastViewData == null) {
+            return;
+        }
+        
+        int[][] brickData = lastViewData.getBrickData();
+        if (brickData == null || rectangles.length == 0) {
+            return;
+        }
+        
+        // Update only the colors of existing rectangles (falling brick)
+        for (int i = 0; i < brickData.length && i < rectangles.length; i++) {
+            for (int j = 0; j < brickData[i].length && j < rectangles[i].length; j++) {
+                if (rectangles[i][j] != null) {
+                    // Check if frozen and use glacier colors
+                    if (isFrozen) {
+                        rectangles[i][j].setFill(getGlacierColor(brickData[i][j]));
+                    } else {
+                        rectangles[i][j].setFill(getFillColor(brickData[i][j]));
+                    }
+                    // Don't change arcHeight/arcWidth as they're already set
+                }
+            }
+        }
+        
+        // Also update next brick preview colors
+        if (lastViewData.getNextBricks() != null && !nextBrickGrids.isEmpty()) {
+            List<int[][]> nextBricks = lastViewData.getNextBricks();
+            for (int i = 0; i < Math.min(nextBricks.size(), 3) && i < nextBrickGrids.size(); i++) {
+                int[][] nextBrickData = nextBricks.get(i);
+                Rectangle[][] grid = nextBrickGrids.get(i);
+                
+                if (nextBrickData != null && grid != null) {
+                    for (int row = 0; row < nextBrickData.length && row < 4; row++) {
+                        for (int col = 0; col < nextBrickData[row].length && col < 4; col++) {
+                            if (grid[row][col] != null) {
+                                if (nextBrickData[row][col] > 0) {
+                                    // Check if frozen and use glacier colors
+                                    if (isFrozen) {
+                                        grid[row][col].setFill(getGlacierColor(nextBrickData[row][col]));
+                                    } else {
+                                        grid[row][col].setFill(getFillColor(nextBrickData[row][col]));
+                                    }
+                                } else {
+                                    grid[row][col].setFill(Color.TRANSPARENT);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Also update ghost piece colors to match brick (reuse brickData from above)
+        if (ghostRectangles != null && brickData != null) {
+            for (int i = 0; i < brickData.length && i < ghostRectangles.length; i++) {
+                for (int j = 0; j < brickData[i].length && j < ghostRectangles[i].length; j++) {
+                    if (ghostRectangles[i][j] != null) {
+                        int brickValue = brickData[i][j];
+                        if (brickValue != 0) {
+                            // Match brick color (frozen or normal)
+                            Paint brickColor;
+                            if (isFrozen) {
+                                brickColor = getGlacierColor(brickValue);
+                            } else {
+                                brickColor = getFillColor(brickValue);
+                            }
+                            if (brickColor instanceof Color) {
+                                ghostRectangles[i][j].setStroke((Color) brickColor);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void moveDown(MoveEvent event) {
@@ -1728,15 +1838,8 @@ public class GuiController implements Initializable {
                 gameBoard.getStyleClass().add("frozen-theme");
             }
             
-            // Immediately refresh colors to show glacier palette
-            if (displayMatrix != null && eventListener != null) {
-                // Trigger refresh by getting current view data
-                com.comp2042.model.ViewData currentView = eventListener.onRotateEvent(
-                    new com.comp2042.events.MoveEvent(com.comp2042.events.EventType.ROTATE, com.comp2042.events.EventSource.THREAD));
-                if (currentView != null) {
-                    refreshBrick(currentView);
-                }
-            }
+            // Update colors of existing rectangles without changing shape
+            updateBrickColors();
             if (displayMatrix != null && gameController != null) {
                 com.comp2042.model.Board currentBoard = ((com.comp2042.controller.GameController) gameController).getBoard();
                 if (currentBoard != null) {
@@ -1768,14 +1871,8 @@ public class GuiController implements Initializable {
                 gameBoard.getStyleClass().remove("frozen-theme");
             }
             
-            // Immediately refresh colors to restore normal palette
-            if (displayMatrix != null && eventListener != null) {
-                com.comp2042.model.ViewData currentView = eventListener.onRotateEvent(
-                    new com.comp2042.events.MoveEvent(com.comp2042.events.EventType.ROTATE, com.comp2042.events.EventSource.THREAD));
-                if (currentView != null) {
-                    refreshBrick(currentView);
-                }
-            }
+            // Update colors of existing rectangles without changing shape (uses lastViewData which includes any rotations during freeze)
+            updateBrickColors();
             if (displayMatrix != null && gameController != null) {
                 com.comp2042.model.Board currentBoard = ((com.comp2042.controller.GameController) gameController).getBoard();
                 if (currentBoard != null) {

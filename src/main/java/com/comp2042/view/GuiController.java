@@ -5,6 +5,7 @@ import com.comp2042.events.EventSource;
 import com.comp2042.events.EventType;
 import com.comp2042.events.MoveEvent;
 import com.comp2042.model.DownData;
+import com.comp2042.model.GameMode;
 import com.comp2042.model.GameSettings;
 import com.comp2042.model.Score;
 import com.comp2042.model.ViewData;
@@ -28,6 +29,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.scene.effect.Glow;
 import javafx.scene.effect.Reflection;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -148,6 +150,13 @@ public class GuiController implements Initializable {
     private boolean isAnimating = false;
     
     private boolean isShowingHighScoreNotification = false;
+    
+    // Track mirror mode for positioning adjustments
+    private boolean isMirrorMode = false;
+    
+    // Board dimensions for flip calculations
+    private static final int BOARD_WIDTH_PX = 10 * 21;  // 210px
+    private static final int BOARD_HEIGHT_PX = 23 * 21; // 483px (23 visible rows)
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -343,14 +352,44 @@ public class GuiController implements Initializable {
             double cellHeight = BRICK_SIZE + 1;
             
             // 5. Position brickPanel to align with gamePanel grid
-            brickPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
-            brickPanel.setLayoutY(boardOffsetY + ((brick.getyPosition() - 2) * cellHeight));
+            double brickX = boardOffsetX + (brick.getxPosition() * cellWidth);
+            double brickY = boardOffsetY + ((brick.getyPosition() - 2) * cellHeight);
+            
+            // Adjust Y positioning for mirror mode (anti-gravity: bricks fall from bottom to top)
+            if (GameSettings.getSelectedGameMode() == GameMode.MIRROR) {
+                // We need to shift everything UP significantly.
+                // This formula calculates the distance from the bottom row.
+                // (22 - y) means as Y gets bigger (logic falls down), the result gets smaller (visual moves up).
+                double mirrorY = (22 - brick.getyPosition()) * cellHeight;
+                
+                // Manual Calibration: 
+                // If it is still too low, make this number SMALLER (e.g. -600). 
+                // If it is too high, make it LARGER (e.g. -50).
+                double yCorrection = -420.0; // Fine-tuned: shifted down slightly (about 1.5 blocks)
+                
+                brickY = boardOffsetY + mirrorY + yCorrection;
+            }
+            
+            brickPanel.setLayoutX(brickX);
+            brickPanel.setLayoutY(brickY);
             
             // 6. Position ghostPanel at the ghost Y position (same X, different Y)
             // Use the exact same parent and calculation as brickPanel since they're siblings
             if (ghostPanel != null) {
-                ghostPanel.setLayoutX(boardOffsetX + (brick.getxPosition() * cellWidth));
-                ghostPanel.setLayoutY(boardOffsetY + ((brick.getGhostY() - 2) * cellHeight));
+                double ghostX = boardOffsetX + (brick.getxPosition() * cellWidth);
+                double ghostY = boardOffsetY + ((brick.getGhostY() - 2) * cellHeight);
+                
+                // Adjust Y positioning for mirror mode (anti-gravity)
+                if (GameSettings.getSelectedGameMode() == GameMode.MIRROR) {
+                    // Apply exactly the same logic to the ghost
+                    double ghostMirrorY = (22 - brick.getGhostY()) * cellHeight;
+                    double yCorrection = -420.0; // Same correction factor - fine-tuned down slightly
+                    
+                    ghostY = boardOffsetY + ghostMirrorY + yCorrection;
+                }
+                
+                ghostPanel.setLayoutX(ghostX);
+                ghostPanel.setLayoutY(ghostY);
             }
         }
         // If scene not attached yet, refreshBrick will handle positioning on first update
@@ -484,13 +523,43 @@ public class GuiController implements Initializable {
             
             // Position brickPanel using cached values
             if (coordinatesCached) {
-                brickPanel.setLayoutX(cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth));
-                brickPanel.setLayoutY(cachedBoardOffsetY + ((brick.getyPosition() - 2) * cachedCellHeight));
+                double brickX = cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth);
+                double brickY = cachedBoardOffsetY + ((brick.getyPosition() - 2) * cachedCellHeight);
+                
+                // Adjust Y positioning for mirror mode (anti-gravity: bricks fall from bottom to top)
+                if (GameSettings.getSelectedGameMode() == GameMode.MIRROR) {
+                    // We need to shift everything UP significantly.
+                    // This formula calculates the distance from the bottom row.
+                    // (22 - y) means as Y gets bigger (logic falls down), the result gets smaller (visual moves up).
+                    double mirrorY = (22 - brick.getyPosition()) * cachedCellHeight;
+                    
+                    // Manual Calibration: 
+                    // If it is still too low, make this number SMALLER (e.g. -600). 
+                    // If it is too high, make it LARGER (e.g. -50).
+                    double yCorrection = -420.0; // Fine-tuned: shifted down slightly (about 1.5 blocks)
+                    
+                    brickY = cachedBoardOffsetY + mirrorY + yCorrection;
+                }
+                
+                brickPanel.setLayoutX(brickX);
+                brickPanel.setLayoutY(brickY);
                 
                 // Position ghostPanel at the ghost Y position
                 if (ghostPanel != null && ghostRectangles != null) {
-                    ghostPanel.setLayoutX(cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth));
-                    ghostPanel.setLayoutY(cachedBoardOffsetY + ((brick.getGhostY() - 2) * cachedCellHeight));
+                    double ghostX = cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth);
+                    double ghostY = cachedBoardOffsetY + ((brick.getGhostY() - 2) * cachedCellHeight);
+                    
+                    // Adjust Y positioning for mirror mode (anti-gravity)
+                    if (GameSettings.getSelectedGameMode() == GameMode.MIRROR) {
+                        // Apply exactly the same logic to the ghost
+                        double ghostMirrorY = (22 - brick.getGhostY()) * cachedCellHeight;
+                        double yCorrection = -420.0; // Same correction factor - fine-tuned down slightly
+                        
+                        ghostY = cachedBoardOffsetY + ghostMirrorY + yCorrection;
+                    }
+                    
+                    ghostPanel.setLayoutX(ghostX);
+                    ghostPanel.setLayoutY(ghostY);
                 }
             }
             
@@ -1199,6 +1268,45 @@ public class GuiController implements Initializable {
     public void showLeaderboard() {
         if (leaderboardPanel != null) {
             leaderboardPanel.showWithAnimation();
+        }
+    }
+    
+    /**
+     * Sets mirror mode on or off. When active, flips the gameboard vertically
+     * so bricks appear to fall from bottom to top (anti-gravity).
+     * 
+     * @param active true to enable mirror mode, false to disable
+     */
+    public void setMirrorMode(boolean active) {
+        isMirrorMode = active;
+        if (active) {
+            // Flip gameboard vertically only (Y-axis flip for anti-gravity)
+            if (gamePanel != null) {
+                gamePanel.setScaleX(1.0);  // Keep X normal
+                gamePanel.setScaleY(-1.0); // Flip Y vertically
+            }
+            if (ghostPanel != null) {
+                ghostPanel.setScaleX(1.0);
+                ghostPanel.setScaleY(-1.0);
+            }
+            if (brickPanel != null) {
+                brickPanel.setScaleX(1.0);
+                brickPanel.setScaleY(-1.0);
+            }
+        } else {
+            // Reset to normal
+            if (gamePanel != null) {
+                gamePanel.setScaleX(1.0);
+                gamePanel.setScaleY(1.0);
+            }
+            if (ghostPanel != null) {
+                ghostPanel.setScaleX(1.0);
+                ghostPanel.setScaleY(1.0);
+            }
+            if (brickPanel != null) {
+                brickPanel.setScaleX(1.0);
+                brickPanel.setScaleY(1.0);
+            }
         }
     }
 }

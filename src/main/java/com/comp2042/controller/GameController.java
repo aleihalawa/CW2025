@@ -35,11 +35,16 @@ public class GameController implements InputEventListener {
     
     /**
      * Sets the game mode.
+     * Also updates ghost piece mirror mode.
      * 
      * @param mode The game mode to set
      */
     public void setGameMode(GameMode mode) {
         this.currentMode = mode;
+        // Update ghost piece mirror mode when mode changes
+        if (viewGuiController != null) {
+            viewGuiController.setMirrorMode(currentMode == GameMode.MIRROR);
+        }
     }
     
     /**
@@ -71,10 +76,20 @@ public class GameController implements InputEventListener {
 
     public GameController(GuiController c) {
         viewGuiController = c;
+        
+        // Initialize game mode from GameSettings
+        currentMode = GameSettings.getSelectedGameMode();
+        if (currentMode == null) {
+            currentMode = GameMode.CLASSIC; // Default fallback
+        }
+        
         board.createNewBrick();
         viewGuiController.setEventListener(this);
         viewGuiController.initGameView(board.getBoardMatrix(), board.getViewData());
         viewGuiController.bindScore(board.getScore());
+        
+        // Set mirror mode for ghost piece inversion
+        viewGuiController.setMirrorMode(currentMode == GameMode.MIRROR);
         
         // Initialize lock timer: 0.5s delay before locking
         lockTimer = new Timeline(new KeyFrame(Duration.millis(500), e -> lockPieceAndHandleNewBrick()));
@@ -215,7 +230,14 @@ public class GameController implements InputEventListener {
 
     @Override
     public ViewData onLeftEvent(MoveEvent event) {
-        boolean moved = board.moveBrickLeft();
+        boolean moved;
+        if (currentMode == GameMode.MIRROR) {
+            // Mirror mode: left key moves right
+            moved = board.moveBrickRight();
+        } else {
+            // Classic mode: left key moves left
+            moved = board.moveBrickLeft();
+        }
         if (moved) {
             // Play move sound effect
             playMoveSound();
@@ -229,7 +251,14 @@ public class GameController implements InputEventListener {
 
     @Override
     public ViewData onRightEvent(MoveEvent event) {
-        boolean moved = board.moveBrickRight();
+        boolean moved;
+        if (currentMode == GameMode.MIRROR) {
+            // Mirror mode: right key moves left
+            moved = board.moveBrickLeft();
+        } else {
+            // Classic mode: right key moves right
+            moved = board.moveBrickRight();
+        }
         if (moved) {
             // Play move sound effect
             playMoveSound();
@@ -243,7 +272,15 @@ public class GameController implements InputEventListener {
 
     @Override
     public ViewData onRotateEvent(MoveEvent event) {
-        boolean rotated = board.rotateLeftBrick();
+        boolean rotated;
+        if (currentMode == GameMode.MIRROR) {
+            // Mirror mode: reverse rotation (rotate right instead of left)
+            rotated = board.rotateRightBrick();
+        } else {
+            // Classic mode: standard rotation
+            rotated = board.rotateLeftBrick();
+        }
+        
         if (rotated) {
             // Play rotation sound effect
             playRotateSound();

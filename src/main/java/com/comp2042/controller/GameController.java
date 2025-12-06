@@ -26,6 +26,48 @@ public class GameController implements InputEventListener {
     // Track player's previous best score for personal high score notification
     private int playerPreviousBestScore = 0;
     private boolean hasShownPersonalHighScoreNotification = false;
+    
+    // Current game mode
+    private GameMode currentMode = GameMode.CLASSIC;
+    
+    // Player name
+    private String playerName;
+    
+    /**
+     * Sets the game mode.
+     * 
+     * @param mode The game mode to set
+     */
+    public void setGameMode(GameMode mode) {
+        this.currentMode = mode;
+    }
+    
+    /**
+     * Gets the current game mode.
+     * 
+     * @return The current game mode
+     */
+    public GameMode getGameMode() {
+        return currentMode;
+    }
+    
+    /**
+     * Sets the player name.
+     * 
+     * @param name The player's name
+     */
+    public void setPlayerName(String name) {
+        this.playerName = name;
+    }
+    
+    /**
+     * Gets the player name.
+     * 
+     * @return The player's name
+     */
+    public String getPlayerName() {
+        return playerName;
+    }
 
     public GameController(GuiController c) {
         viewGuiController = c;
@@ -388,9 +430,9 @@ public class GameController implements InputEventListener {
             playerName = "Player";
         }
         
-        // Load leaderboard and find this player's best score
+        // Load leaderboard and find this player's best score for the current game mode
         java.util.List<com.comp2042.model.ScoreEntry> leaderboard = 
-            com.comp2042.model.HighScoreManager.loadLeaderboard(com.comp2042.model.GameMode.CLASSIC);
+            com.comp2042.model.HighScoreManager.loadLeaderboard(currentMode);
         
         playerPreviousBestScore = 0;
         for (com.comp2042.model.ScoreEntry entry : leaderboard) {
@@ -442,7 +484,7 @@ public class GameController implements InputEventListener {
             playerName = "Player";
         }
         com.comp2042.model.ScoreEntry entry = new com.comp2042.model.ScoreEntry(playerName, finalScore);
-        com.comp2042.model.HighScoreManager.saveEntry(com.comp2042.model.GameMode.CLASSIC, entry);
+        com.comp2042.model.HighScoreManager.saveEntry(currentMode, entry);
         
         // Show game over panel
         viewGuiController.gameOver();

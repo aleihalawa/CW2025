@@ -208,23 +208,42 @@ public class GameController implements InputEventListener {
 
     @Override
     public DownData onDownEvent(MoveEvent event) {
+        // CRITICAL: Check if drill is active BEFORE calling moveBrickDown
+        // If drill just finished (returned false), it already spawned a new brick
+        boolean wasDrill = ((SimpleBoard) board).isDrillActive();
+        
         boolean canMove = board.moveBrickDown();
         ClearRow clearRow;
 
         if (!canMove) {
-            // Hit bottom - start lock delay timer if not already running
-            if (lockTimer.getStatus() != Animation.Status.RUNNING) {
-                lockTimer.play();
-                ((SimpleBoard) board).setLocking(true);
+            // Check if this was a drill finishing (not a collision)
+            if (wasDrill) {
+                // Drill finished - it already spawned a new brick in moveDrillDown()
+                // Refresh background to show any blocks that were destroyed
+                viewGuiController.refreshGameBackground(board.getBoardMatrix());
+                // Do NOT start lock timer or merge - the drill just vanished
+                clearRow = null;
+            } else {
+                // Normal brick hit bottom - start lock delay timer if not already running
+                if (lockTimer.getStatus() != Animation.Status.RUNNING) {
+                    lockTimer.play();
+                    ((SimpleBoard) board).setLocking(true);
+                }
+                // Do NOT call lockPieceAndHandleNewBrick() immediately - wait for timer
+                clearRow = null;
             }
-            // Do NOT call lockPieceAndHandleNewBrick() immediately - wait for timer
-            clearRow = null;
         } else {
             // Piece moved successfully - stop timer and reset locking state
             lockTimer.stop();
             ((SimpleBoard) board).setLocking(false);
             rewardManualDrop(event);
             clearRow = null;
+            
+            // CRITICAL: If drill is still active, refresh background immediately
+            // This ensures destroyed blocks disappear right away, not after the drill finishes
+            if (((SimpleBoard) board).isDrillActive()) {
+                viewGuiController.refreshGameBackground(board.getBoardMatrix());
+            }
         }
 
         return new DownData(clearRow, board.getViewData());
@@ -627,10 +646,25 @@ public class GameController implements InputEventListener {
     }
     
     /**
-     * Placeholder for DRILL power-up effect.
+     * Activates the DRILL power-up effect.
+     * Replaces the current falling brick with a drill projectile that destroys blocks as it falls.
      */
     private void activateDrill() {
-        // TODO: Implement drill effect
-        System.out.println("Drill activated (placeholder)");
+        System.out.println("Drill activated!");
+        
+        // Stop any lock timer
+        lockTimer.stop();
+        ((SimpleBoard) board).setLocking(false);
+        
+        // Spawn the drill - let the board handle the logic to ensure variables are synced
+        // Do not create a new DrillBrick manually here
+        ((SimpleBoard) board).spawnDrill();
+        
+        // Refresh the view to show the new drill brick
+        viewGuiController.refreshBrick(board.getViewData());
+        
+        // Ensure the game loop is running (start timeline if it was paused)
+        // The drill will fall automatically via the game loop
+        // The timeline should already be running, but ensure it continues
     }
 }

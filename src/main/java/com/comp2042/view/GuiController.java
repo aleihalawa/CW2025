@@ -46,6 +46,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.ImagePattern;
 import javafx.scene.paint.Paint;
 import javafx.scene.paint.RadialGradient;
 import javafx.scene.paint.Stop;
@@ -188,6 +189,9 @@ public class GuiController implements Initializable {
     private AnimationTimer snowStormTimer;
     private final java.util.List<Circle> snowParticles = new java.util.ArrayList<>();
     private Scene gameScene;
+    
+    // Drill texture image
+    private Image drillTexture;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -252,6 +256,19 @@ public class GuiController implements Initializable {
             }
         } catch (Exception e) {
             System.err.println("Error loading pause menu image: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // Load drill texture image
+        try {
+            URL drillUrl = getClass().getClassLoader().getResource("drill logo.png");
+            if (drillUrl != null) {
+                drillTexture = new Image(drillUrl.toExternalForm());
+            } else {
+                System.err.println("Could not find drill logo.png in resources");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading drill texture: " + e.getMessage());
             e.printStackTrace();
         }
         
@@ -383,7 +400,14 @@ public class GuiController implements Initializable {
         for (int i = 0; i < brickData.length; i++) {
             for (int j = 0; j < brickData[i].length; j++) {
                 Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
-                rectangle.setFill(getFillColor(brickData[i][j]));
+                int val = brickData[i][j];
+                // Check if this is a drill (ID 11) and use texture
+                if (val == 11 && drillTexture != null) {
+                    // Scale image to match brick size (20x20)
+                    rectangle.setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
+                } else {
+                    rectangle.setFill(getFillColor(val));
+                }
                 rectangles[i][j] = rectangle;
                 brickPanel.add(rectangle, j, i);
             }
@@ -748,48 +772,134 @@ public class GuiController implements Initializable {
             // Cache brick data to avoid multiple getBrickData() calls
             int[][] brickData = brick.getBrickData();
             
-            // Update brick rectangles
-            for (int i = 0; i < brickData.length; i++) {
-                for (int j = 0; j < brickData[i].length; j++) {
-                    // Check if frozen and use glacier colors
-                    if (isFrozen) {
-                        rectangles[i][j].setFill(getGlacierColor(brickData[i][j]));
-                    } else {
-                        rectangles[i][j].setFill(getFillColor(brickData[i][j]));
+            // CRITICAL: Check if brick size changed (e.g., switching to/from drill)
+            // If the brick size changed, we need to recreate the rectangles array
+            if (rectangles == null || 
+                rectangles.length != brickData.length || 
+                (brickData.length > 0 && rectangles[0].length != brickData[0].length)) {
+                // Brick size changed - recreate rectangles array
+                // First, remove old rectangles from brickPanel
+                if (rectangles != null) {
+                    for (Rectangle[] row : rectangles) {
+                        for (Rectangle rect : row) {
+                            if (rect != null) {
+                                brickPanel.getChildren().remove(rect);
+                            }
+                        }
                     }
-                    rectangles[i][j].setArcHeight(9);
-                    rectangles[i][j].setArcWidth(9);
+                }
+                
+                // Create new rectangles array matching the new brick size
+                rectangles = new Rectangle[brickData.length][brickData[0].length];
+                for (int i = 0; i < brickData.length; i++) {
+                    for (int j = 0; j < brickData[i].length; j++) {
+                        Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
+                        rectangles[i][j] = rectangle;
+                        brickPanel.add(rectangle, j, i);
+                    }
+                }
+            }
+            
+            // Update brick rectangles - hide unused ones, show and update used ones
+            for (int i = 0; i < rectangles.length; i++) {
+                for (int j = 0; j < rectangles[i].length; j++) {
+                    if (rectangles[i][j] != null) {
+                        if (i < brickData.length && j < brickData[i].length) {
+                            // This rectangle is part of the current brick
+                            int val = brickData[i][j];
+                            rectangles[i][j].setVisible(val != 0); // Hide if empty, show if filled
+                            
+                            if (val != 0) {
+                                // Check if this is a drill (ID 11) and use texture
+                                if (val == 11 && drillTexture != null) {
+                                    // Scale image to match brick size (20x20)
+                                    rectangles[i][j].setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
+                                } else {
+                                    // Check if frozen and use glacier colors
+                                    if (isFrozen) {
+                                        rectangles[i][j].setFill(getGlacierColor(val));
+                                    } else {
+                                        rectangles[i][j].setFill(getFillColor(val));
+                                    }
+                                }
+                                rectangles[i][j].setArcHeight(9);
+                                rectangles[i][j].setArcWidth(9);
+                            } else {
+                                // Empty cell - make transparent
+                                rectangles[i][j].setFill(Color.TRANSPARENT);
+                            }
+                        } else {
+                            // This rectangle is beyond the current brick size - hide it
+                            rectangles[i][j].setVisible(false);
+                        }
+                    }
                 }
             }
             
             // Update ghost rectangles to match brick shape with outline only
+            // CRITICAL: Check if ghost rectangles need to be resized (e.g., switching to/from drill)
             if (GameSettings.isGhostModeEnabled()) {
-                if (ghostRectangles != null) {
+                // Check if ghost rectangles need to be recreated
+                if (ghostRectangles == null || 
+                    ghostRectangles.length != brickData.length || 
+                    (brickData.length > 0 && ghostRectangles[0].length != brickData[0].length)) {
+                    // Ghost size changed - recreate ghost rectangles array
+                    if (ghostRectangles != null) {
+                        for (Rectangle[] row : ghostRectangles) {
+                            for (Rectangle rect : row) {
+                                if (rect != null) {
+                                    ghostPanel.getChildren().remove(rect);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Create new ghost rectangles array
+                    ghostRectangles = new Rectangle[brickData.length][brickData[0].length];
                     for (int i = 0; i < brickData.length; i++) {
                         for (int j = 0; j < brickData[i].length; j++) {
-                            int brickValue = brickData[i][j];
-                            if (brickValue != 0) {
-                                // Show ghost piece where brick has blocks, with thin outline in brick color
-                                ghostRectangles[i][j].setVisible(true);
-                                ghostRectangles[i][j].setFill(Color.TRANSPARENT);
-                                // Match brick color (frozen or normal)
-                                Paint brickColor;
-                                if (isFrozen) {
-                                    brickColor = getGlacierColor(brickValue);
+                            Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
+                            rectangle.setFill(Color.TRANSPARENT);
+                            ghostRectangles[i][j] = rectangle;
+                            ghostPanel.add(rectangle, j, i);
+                        }
+                    }
+                }
+                
+                // Update ghost rectangles
+                if (ghostRectangles != null) {
+                    for (int i = 0; i < ghostRectangles.length; i++) {
+                        for (int j = 0; j < ghostRectangles[i].length; j++) {
+                            if (ghostRectangles[i][j] != null) {
+                                if (i < brickData.length && j < brickData[i].length) {
+                                    int brickValue = brickData[i][j];
+                                    if (brickValue != 0) {
+                                        // Show ghost piece where brick has blocks, with thin outline in brick color
+                                        ghostRectangles[i][j].setVisible(true);
+                                        ghostRectangles[i][j].setFill(Color.TRANSPARENT);
+                                        // Match brick color (frozen or normal)
+                                        Paint brickColor;
+                                        if (isFrozen) {
+                                            brickColor = getGlacierColor(brickValue);
+                                        } else {
+                                            brickColor = getFillColor(brickValue);
+                                        }
+                                        if (brickColor instanceof Color) {
+                                            ghostRectangles[i][j].setStroke((Color) brickColor);
+                                            ghostRectangles[i][j].setStrokeWidth(1.0); // Thin outline
+                                            ghostRectangles[i][j].setStrokeType(StrokeType.INSIDE); // Stroke inside bounds for perfect alignment
+                                            // Add slight neon glow effect
+                                            javafx.scene.effect.Glow glow = new javafx.scene.effect.Glow(0.6);
+                                            ghostRectangles[i][j].setEffect(glow);
+                                        }
+                                    } else {
+                                        // Hide ghost piece where brick has no blocks
+                                        ghostRectangles[i][j].setVisible(false);
+                                    }
                                 } else {
-                                    brickColor = getFillColor(brickValue);
+                                    // Beyond brick size - hide
+                                    ghostRectangles[i][j].setVisible(false);
                                 }
-                                if (brickColor instanceof Color) {
-                                    ghostRectangles[i][j].setStroke((Color) brickColor);
-                                    ghostRectangles[i][j].setStrokeWidth(1.0); // Thin outline
-                                    ghostRectangles[i][j].setStrokeType(StrokeType.INSIDE); // Stroke inside bounds for perfect alignment
-                                    // Add slight neon glow effect
-                                    javafx.scene.effect.Glow glow = new javafx.scene.effect.Glow(0.6);
-                                    ghostRectangles[i][j].setEffect(glow);
-                                }
-                            } else {
-                                // Hide ghost piece where brick has no blocks
-                                ghostRectangles[i][j].setVisible(false);
                             }
                         }
                     }
@@ -799,7 +909,9 @@ public class GuiController implements Initializable {
                 if (ghostRectangles != null) {
                     for (Rectangle[] row : ghostRectangles) {
                         for (Rectangle rect : row) {
-                            rect.setVisible(false);
+                            if (rect != null) {
+                                rect.setVisible(false);
+                            }
                         }
                     }
                 }
@@ -937,12 +1049,19 @@ public class GuiController implements Initializable {
             if (brickData != null) {
                 for (int row = 0; row < brickData.length && row < 4; row++) {
                     for (int col = 0; col < brickData[row].length && col < 4; col++) {
-                        if (brickData[row][col] > 0) {
-                            // Check if frozen and use glacier colors
-                            if (isFrozen) {
-                                grid[row][col].setFill(getGlacierColor(brickData[row][col]));
+                        int val = brickData[row][col];
+                        if (val > 0) {
+                            // Check if this is a drill (ID 11) and use texture
+                            if (val == 11 && drillTexture != null) {
+                                // Scale image to match brick size (20x20)
+                                grid[row][col].setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
                             } else {
-                                grid[row][col].setFill(getFillColor(brickData[row][col]));
+                                // Check if frozen and use glacier colors
+                                if (isFrozen) {
+                                    grid[row][col].setFill(getGlacierColor(val));
+                                } else {
+                                    grid[row][col].setFill(getFillColor(val));
+                                }
                             }
                             grid[row][col].setArcHeight(9);
                             grid[row][col].setArcWidth(9);
@@ -969,11 +1088,17 @@ public class GuiController implements Initializable {
     }
 
     private void setRectangleData(int color, Rectangle rectangle) {
-        // Check if frozen and use glacier colors
-        if (isFrozen) {
-            rectangle.setFill(getGlacierColor(color));
+        // Check if this is a drill (ID 11) and use texture
+        if (color == 11 && drillTexture != null) {
+            // Scale image to match brick size (20x20)
+            rectangle.setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
         } else {
-            rectangle.setFill(getFillColor(color));
+            // Check if frozen and use glacier colors
+            if (isFrozen) {
+                rectangle.setFill(getGlacierColor(color));
+            } else {
+                rectangle.setFill(getFillColor(color));
+            }
         }
         rectangle.setArcHeight(9);
         rectangle.setArcWidth(9);
@@ -1002,11 +1127,18 @@ public class GuiController implements Initializable {
         for (int i = 0; i < brickData.length && i < rectangles.length; i++) {
             for (int j = 0; j < brickData[i].length && j < rectangles[i].length; j++) {
                 if (rectangles[i][j] != null) {
-                    // Check if frozen and use glacier colors
-                    if (isFrozen) {
-                        rectangles[i][j].setFill(getGlacierColor(brickData[i][j]));
+                    int val = brickData[i][j];
+                    // Check if this is a drill (ID 11) and use texture
+                    if (val == 11 && drillTexture != null) {
+                        // Scale image to match brick size (20x20)
+                        rectangles[i][j].setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
                     } else {
-                        rectangles[i][j].setFill(getFillColor(brickData[i][j]));
+                        // Check if frozen and use glacier colors
+                        if (isFrozen) {
+                            rectangles[i][j].setFill(getGlacierColor(val));
+                        } else {
+                            rectangles[i][j].setFill(getFillColor(val));
+                        }
                     }
                     // Don't change arcHeight/arcWidth as they're already set
                 }
@@ -1024,12 +1156,19 @@ public class GuiController implements Initializable {
                     for (int row = 0; row < nextBrickData.length && row < 4; row++) {
                         for (int col = 0; col < nextBrickData[row].length && col < 4; col++) {
                             if (grid[row][col] != null) {
-                                if (nextBrickData[row][col] > 0) {
-                                    // Check if frozen and use glacier colors
-                                    if (isFrozen) {
-                                        grid[row][col].setFill(getGlacierColor(nextBrickData[row][col]));
+                                int val = nextBrickData[row][col];
+                                if (val > 0) {
+                                    // Check if this is a drill (ID 11) and use texture
+                                    if (val == 11 && drillTexture != null) {
+                                        // Scale image to match brick size (20x20)
+                                        grid[row][col].setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
                                     } else {
-                                        grid[row][col].setFill(getFillColor(nextBrickData[row][col]));
+                                        // Check if frozen and use glacier colors
+                                        if (isFrozen) {
+                                            grid[row][col].setFill(getGlacierColor(val));
+                                        } else {
+                                            grid[row][col].setFill(getFillColor(val));
+                                        }
                                     }
                                 } else {
                                     grid[row][col].setFill(Color.TRANSPARENT);

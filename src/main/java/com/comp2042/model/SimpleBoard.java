@@ -116,6 +116,7 @@ public class SimpleBoard implements Board {
         if (currentBrick instanceof com.comp2042.model.logic.bricks.DrillBrick) {
             // Drill can move freely left/right - only check screen bounds
             int currentX = (int) currentOffset.getX();
+            int currentY = (int) currentOffset.getY();
             int newX = currentX - 1;
             
             // Check bounds: don't wrap around the screen
@@ -123,8 +124,19 @@ public class SimpleBoard implements Board {
                 return false;
             }
             
+            // DESTRUCTION: Destroy any block at the new position before moving
+            // Matrix is [row][column] = [y][x]
+            // To access row currentY (0-24) and column newX (0-9): matrix[currentY][newX]
+            if (currentY >= 0 && currentY < width && newX >= 0 && newX < height) {
+                // Access as [row][column] = [currentY][newX]
+                if (currentGameMatrix[currentY][newX] != 0) {
+                    // Destroy the block
+                    currentGameMatrix[currentY][newX] = 0;
+                }
+            }
+            
             // Move the drill left
-            currentOffset = new Point(newX, (int) currentOffset.getY());
+            currentOffset = new Point(newX, currentY);
             return true;
         } else {
             // Standard Logic: Use collision check for normal bricks
@@ -148,16 +160,28 @@ public class SimpleBoard implements Board {
         if (currentBrick instanceof com.comp2042.model.logic.bricks.DrillBrick) {
             // Drill can move freely left/right - only check screen bounds
             int currentX = (int) currentOffset.getX();
+            int currentY = (int) currentOffset.getY();
             int newX = currentX + 1;
             
             // Check bounds: don't wrap around the screen
-            // Drill is 1x1, so check if newX exceeds width
-            if (newX >= width) {
+            // Drill is 1x1, so check if newX exceeds height (columns)
+            if (newX >= height) {
                 return false;
             }
             
+            // DESTRUCTION: Destroy any block at the new position before moving
+            // Matrix is [row][column] = [y][x]
+            // To access row currentY (0-24) and column newX (0-9): matrix[currentY][newX]
+            if (currentY >= 0 && currentY < width && newX >= 0 && newX < height) {
+                // Access as [row][column] = [currentY][newX]
+                if (currentGameMatrix[currentY][newX] != 0) {
+                    // Destroy the block
+                    currentGameMatrix[currentY][newX] = 0;
+                }
+            }
+            
             // Move the drill right
-            currentOffset = new Point(newX, (int) currentOffset.getY());
+            currentOffset = new Point(newX, currentY);
             return true;
         } else {
             // Standard Logic: Use collision check for normal bricks

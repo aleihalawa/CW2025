@@ -267,6 +267,12 @@ public class GameController implements InputEventListener {
             // Move was successful - stop timer and reset locking state
             lockTimer.stop();
             ((SimpleBoard) board).setLocking(false);
+            
+            // CRITICAL: If drill is active, refresh background immediately
+            // This ensures destroyed blocks disappear right away when drill moves horizontally
+            if (((SimpleBoard) board).isDrillActive()) {
+                viewGuiController.refreshGameBackground(board.getBoardMatrix());
+            }
         }
         return board.getViewData();
     }
@@ -288,6 +294,12 @@ public class GameController implements InputEventListener {
             // Move was successful - stop timer and reset locking state
             lockTimer.stop();
             ((SimpleBoard) board).setLocking(false);
+            
+            // CRITICAL: If drill is active, refresh background immediately
+            // This ensures destroyed blocks disappear right away when drill moves horizontally
+            if (((SimpleBoard) board).isDrillActive()) {
+                viewGuiController.refreshGameBackground(board.getBoardMatrix());
+            }
         }
         return board.getViewData();
     }

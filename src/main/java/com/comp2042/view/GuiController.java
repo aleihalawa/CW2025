@@ -192,6 +192,13 @@ public class GuiController implements Initializable {
     
     // Drill texture image
     private Image drillTexture;
+    
+    // Drill visual effects
+    private double drillRotation = 0;
+    private final java.util.List<Rectangle> drillParticles = new java.util.ArrayList<>();
+    private AnimationTimer drillParticleTimer;
+    private boolean isDrillActive = false;
+    private int[][] previousBoardMatrix; // Track previous board state to detect destroyed blocks
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -372,6 +379,14 @@ public class GuiController implements Initializable {
     }
 
     public void initGameView(int[][] boardMatrix, ViewData brick) {
+        // Initialize previous board matrix for destruction detection
+        if (previousBoardMatrix == null) {
+            previousBoardMatrix = new int[boardMatrix.length][];
+            for (int i = 0; i < boardMatrix.length; i++) {
+                previousBoardMatrix[i] = new int[boardMatrix[i].length];
+                System.arraycopy(boardMatrix[i], 0, previousBoardMatrix[i], 0, boardMatrix[i].length);
+            }
+        }
         // Store board reference if available from eventListener
         if (eventListener instanceof com.comp2042.controller.GameController) {
             com.comp2042.controller.GameController gc = (com.comp2042.controller.GameController) eventListener;
@@ -800,6 +815,57 @@ public class GuiController implements Initializable {
                 }
             }
             
+            // Check if drill is active (any cell with ID 11)
+            boolean drillFound = false;
+            double drillScreenX = 0;
+            double drillScreenY = 0;
+            Rectangle drillRect = null;
+            for (int i = 0; i < brickData.length && !drillFound; i++) {
+                for (int j = 0; j < brickData[i].length && !drillFound; j++) {
+                    if (brickData[i][j] == 11 && i < rectangles.length && j < rectangles[i].length && rectangles[i][j] != null) {
+                        drillFound = true;
+                        drillRect = rectangles[i][j];
+                        // Calculate drill screen position for particles
+                        if (coordinatesCached) {
+                            drillScreenX = cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth) + (j * cachedCellWidth) + (BRICK_SIZE / 2.0);
+                            drillScreenY = cachedBoardOffsetY + ((brick.getyPosition() - 2) * cachedCellHeight) + (i * cachedCellHeight) + (BRICK_SIZE / 2.0);
+                            // Adjust for mirror mode if needed
+                            if (GameSettings.getSelectedGameMode() == GameMode.MIRROR) {
+                                double mirrorY = (22 - brick.getyPosition()) * cachedCellHeight;
+                                double yCorrection = -420.0;
+                                drillScreenY = cachedBoardOffsetY + mirrorY + yCorrection + (i * cachedCellHeight) + (BRICK_SIZE / 2.0);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // Update drill active state and effects
+            if (drillFound != isDrillActive) {
+                isDrillActive = drillFound;
+                if (isDrillActive) {
+                    // Start drill effects
+                    startDrillEffects();
+                    // Hide ghost piece - drill doesn't need it (it just drills through)
+                    if (ghostPanel != null) {
+                        ghostPanel.setVisible(false);
+                    }
+                } else {
+                    // Stop drill effects
+                    stopDrillEffects();
+                    // Show ghost piece again for normal bricks
+                    if (ghostPanel != null && GameSettings.isGhostModeEnabled()) {
+                        ghostPanel.setVisible(true);
+                    }
+                }
+            }
+            
+            // Also hide ghost during drill (in case it was already visible)
+            if (isDrillActive && ghostPanel != null) {
+                ghostPanel.setVisible(false);
+            }
+            
             // Update brick rectangles - hide unused ones, show and update used ones
             for (int i = 0; i < rectangles.length; i++) {
                 for (int j = 0; j < rectangles[i].length; j++) {
@@ -814,7 +880,24 @@ public class GuiController implements Initializable {
                                 if (val == 11 && drillTexture != null) {
                                     // Scale image to match brick size (20x20)
                                     rectangles[i][j].setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
+                                    
+                                    // SPINNING ANIMATION: Rotate the drill
+                                    drillRotation += 30; // Increment rotation angle
+                                    if (drillRotation >= 360) {
+                                        drillRotation -= 360; // Keep in 0-360 range
+                                    }
+                                    // Center pivot point for rotation
+                                    rectangles[i][j].getTransforms().clear();
+                                    rectangles[i][j].getTransforms().add(new javafx.scene.transform.Rotate(drillRotation, BRICK_SIZE / 2.0, BRICK_SIZE / 2.0));
+                                    
+                                    // Spawn continuous drill particles (sparks from drill tip)
+                                    if (coordinatesCached && drillScreenX > 0 && drillScreenY > 0) {
+                                        spawnDrillSparks(drillScreenX, drillScreenY);
+                                    }
                                 } else {
+                                    // Normal brick - reset rotation and transforms
+                                    rectangles[i][j].getTransforms().clear();
+                                    
                                     // Check if frozen and use glacier colors
                                     if (isFrozen) {
                                         rectangles[i][j].setFill(getGlacierColor(val));
@@ -837,13 +920,16 @@ public class GuiController implements Initializable {
             }
             
             // Update ghost rectangles to match brick shape with outline only
-            // CRITICAL: Check if ghost rectangles need to be resized (e.g., switching to/from drill)
-            if (GameSettings.isGhostModeEnabled()) {
+            // CRITICAL: Hide ghost for drill - it's distracting and doesn't make sense
+            if (isDrillActive && ghostPanel != null) {
+                ghostPanel.setVisible(false);
+            } else if (GameSettings.isGhostModeEnabled()) {
                 // Check if ghost rectangles need to be recreated
                 if (ghostRectangles == null || 
                     ghostRectangles.length != brickData.length || 
                     (brickData.length > 0 && ghostRectangles[0].length != brickData[0].length)) {
                     // Ghost size changed - recreate ghost rectangles array
+                    // CRITICAL: Clear all children and constraints to prevent layout issues
                     if (ghostRectangles != null) {
                         for (Rectangle[] row : ghostRectangles) {
                             for (Rectangle rect : row) {
@@ -853,13 +939,29 @@ public class GuiController implements Initializable {
                             }
                         }
                     }
+                    // Clear all GridPane constraints to ensure clean state
+                    ghostPanel.getChildren().clear();
+                    // Also clear column/row constraints if they exist
+                    ghostPanel.getColumnConstraints().clear();
+                    ghostPanel.getRowConstraints().clear();
                     
                     // Create new ghost rectangles array
+                    // CRITICAL: Must set all the same properties as initial creation to avoid shape/visual issues
                     ghostRectangles = new Rectangle[brickData.length][brickData[0].length];
                     for (int i = 0; i < brickData.length; i++) {
                         for (int j = 0; j < brickData[i].length; j++) {
                             Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
+                            // Ghost piece: no fill, only thin outline in brick color with neon glow
                             rectangle.setFill(Color.TRANSPARENT);
+                            // Set arc properties to match initial creation
+                            rectangle.setArcHeight(9);
+                            rectangle.setArcWidth(9);
+                            // Set stroke properties (will be updated based on brick data below)
+                            rectangle.setStrokeWidth(1.0);
+                            rectangle.setStrokeType(StrokeType.INSIDE);
+                            // Add glow effect to match initial creation
+                            javafx.scene.effect.Glow glow = new javafx.scene.effect.Glow(0.6);
+                            rectangle.setEffect(glow);
                             ghostRectangles[i][j] = rectangle;
                             ghostPanel.add(rectangle, j, i);
                         }
@@ -1073,6 +1175,33 @@ public class GuiController implements Initializable {
     }
 
     public void refreshGameBackground(int[][] board) {
+        // DETECT DESTROYED BLOCKS: Compare with previous board state
+        if (previousBoardMatrix != null && isDrillActive) {
+            // Check for blocks that were destroyed (existed before, now empty)
+            for (int i = 2; i < board.length && i < previousBoardMatrix.length; i++) {
+                for (int j = 0; j < board[i].length && j < previousBoardMatrix[i].length; j++) {
+                    // Block was there before but is now gone - it was destroyed!
+                    if (previousBoardMatrix[i][j] != 0 && board[i][j] == 0) {
+                        // Animate block destruction with debris
+                        System.out.println("BLOCK DESTROYED at row=" + i + ", col=" + j + ", color=" + previousBoardMatrix[i][j]);
+                        animateBlockDestruction(i, j, previousBoardMatrix[i][j]);
+                    }
+                }
+            }
+        }
+        
+        // Store current board state for next comparison
+        if (previousBoardMatrix == null || previousBoardMatrix.length != board.length || 
+            (board.length > 0 && previousBoardMatrix[0].length != board[0].length)) {
+            previousBoardMatrix = new int[board.length][];
+            for (int i = 0; i < board.length; i++) {
+                previousBoardMatrix[i] = new int[board[i].length];
+            }
+        }
+        for (int i = 0; i < board.length; i++) {
+            System.arraycopy(board[i], 0, previousBoardMatrix[i], 0, board[i].length);
+        }
+        
         // Only update visible rows (2 to 24, skipping top 2 hidden rows)
         // This is already optimized - only called when board state changes, not every frame
         for (int i = 2; i < board.length; i++) {
@@ -2141,6 +2270,300 @@ public class GuiController implements Initializable {
             if (newY > screenHeight) {
                 iterator.remove();
                 frostOverlay.getChildren().remove(particle);
+            }
+        }
+    }
+    
+    /**
+     * Starts drill visual effects (screen shake, particle timer).
+     */
+    private void startDrillEffects() {
+        // Start particle update timer if not already running
+        if (drillParticleTimer == null) {
+            drillParticleTimer = new AnimationTimer() {
+                @Override
+                public void handle(long now) {
+                    updateDrillParticles();
+                }
+            };
+            drillParticleTimer.start();
+        }
+    }
+    
+    /**
+     * Stops drill visual effects (screen shake, particle timer).
+     */
+    private void stopDrillEffects() {
+        // Stop particle timer
+        if (drillParticleTimer != null) {
+            drillParticleTimer.stop();
+            drillParticleTimer = null;
+        }
+        
+        // Reset screen shake
+        if (gameBoard != null) {
+            gameBoard.setTranslateX(0);
+            gameBoard.setTranslateY(0);
+        }
+        
+        // Clear all particles
+        if (gamePanel != null && gamePanel.getParent() != null) {
+            for (Rectangle particle : new ArrayList<>(drillParticles)) {
+                if (particle.getParent() != null) {
+                    javafx.scene.Parent parent = (javafx.scene.Parent) particle.getParent();
+                    if (parent instanceof javafx.scene.layout.Pane) {
+                        ((javafx.scene.layout.Pane) parent).getChildren().remove(particle);
+                    } else if (parent instanceof javafx.scene.Group) {
+                        ((javafx.scene.Group) parent).getChildren().remove(particle);
+                    }
+                }
+            }
+        }
+        drillParticles.clear();
+    }
+    
+    /**
+     * Animates block destruction with debris particles flying off.
+     * @param row Board row index (0-24)
+     * @param col Board column index (0-9)
+     * @param blockColor The color ID of the destroyed block
+     */
+    private void animateBlockDestruction(int row, int col, int blockColor) {
+        System.out.println("animateBlockDestruction called: row=" + row + ", col=" + col + ", color=" + blockColor);
+        // Calculate screen position of the destroyed block using cached coordinates
+        if (!coordinatesCached || gamePanel == null || gameBoard == null) {
+            System.out.println("Skipping destruction animation - coordinates not cached or panels null");
+            return;
+        }
+        
+        // Calculate block center position in screen coordinates
+        // Row 2 is the first visible row, so row-2 gives us the visual row index
+        double blockCenterX = cachedBoardOffsetX + (col * cachedCellWidth) + (BRICK_SIZE / 2.0);
+        double blockCenterY = cachedBoardOffsetY + ((row - 2) * cachedCellHeight) + (BRICK_SIZE / 2.0);
+        
+        // Get block color for debris
+        Paint blockPaint = getFillColor(blockColor);
+        Color debrisColor = blockPaint instanceof Color ? (Color) blockPaint : Color.GREY;
+        
+        // INTENSE DESTRUCTION: Spawn 12-16 debris particles (more visible)
+        int particleCount = 12 + (int)(Math.random() * 5);
+        
+        // Use gameBoard as the container (it's visible and properly positioned)
+        for (int i = 0; i < particleCount; i++) {
+            // Create debris particle (larger and more visible)
+            double particleSize = 5 + Math.random() * 4; // 5-9px (much larger)
+            Rectangle particle = new Rectangle(particleSize, particleSize);
+            
+            // Use block color with some variation
+            double brightness = 0.8 + Math.random() * 0.2; // 0.8-1.0 (brighter)
+            Color particleColor = Color.color(
+                Math.min(1.0, debrisColor.getRed() * brightness),
+                Math.min(1.0, debrisColor.getGreen() * brightness),
+                Math.min(1.0, debrisColor.getBlue() * brightness),
+                1.0
+            );
+            particle.setFill(particleColor);
+            particle.setStroke(Color.WHITE);
+            particle.setStrokeWidth(0.5);
+            
+            // Set initial position at block center (relative to gameBoard)
+            // Convert to gameBoard's coordinate system
+            javafx.geometry.Point2D gameBoardScenePos = gameBoard.localToScene(0, 0);
+            javafx.geometry.Point2D blockScenePos = gamePanel.localToScene(blockCenterX - cachedBoardOffsetX, blockCenterY - cachedBoardOffsetY);
+            
+            particle.setLayoutX(blockScenePos.getX() - gameBoardScenePos.getX());
+            particle.setLayoutY(blockScenePos.getY() - gameBoardScenePos.getY());
+            
+            // INTENSE DEBRIS: Strong outward velocity
+            double angle = Math.random() * Math.PI * 2; // Random direction
+            double speed = 4 + Math.random() * 5; // 4-9 pixels per frame (faster)
+            double deltaX = Math.cos(angle) * speed;
+            double deltaY = Math.sin(angle) * speed - 3; // Stronger upward bias
+            
+            particle.setUserData(new double[]{deltaX, deltaY, 0.15}); // velocity + stronger gravity
+            
+            // Add to gameBoard (it's a BorderPane, so we need to add to its center or create an overlay)
+            // Actually, let's add to the scene root but use absolute positioning
+            javafx.scene.Parent root = gamePanel.getScene() != null ? gamePanel.getScene().getRoot() : null;
+            if (root != null) {
+                // Use absolute scene coordinates
+                particle.setLayoutX(blockScenePos.getX());
+                particle.setLayoutY(blockScenePos.getY());
+                particle.setManaged(false); // Don't let layout manager interfere
+                
+                if (root instanceof javafx.scene.layout.Pane) {
+                    ((javafx.scene.layout.Pane) root).getChildren().add(particle);
+                } else if (root instanceof javafx.scene.Group) {
+                    ((javafx.scene.Group) root).getChildren().add(particle);
+                } else if (root instanceof javafx.scene.layout.StackPane) {
+                    ((javafx.scene.layout.StackPane) root).getChildren().add(particle);
+                }
+                
+                // Bring particle to front
+                particle.toFront();
+            }
+            
+            drillParticles.add(particle);
+            
+            // Fade out and remove after 1.5 seconds (longer visibility)
+            FadeTransition fade = new FadeTransition(Duration.millis(1500), particle);
+            fade.setFromValue(1.0);
+            fade.setToValue(0.0);
+            fade.setOnFinished(e -> {
+                drillParticles.remove(particle);
+                if (particle.getParent() != null) {
+                    javafx.scene.Parent parent = (javafx.scene.Parent) particle.getParent();
+                    if (parent instanceof javafx.scene.layout.Pane) {
+                        ((javafx.scene.layout.Pane) parent).getChildren().remove(particle);
+                    } else if (parent instanceof javafx.scene.Group) {
+                        ((javafx.scene.Group) parent).getChildren().remove(particle);
+                    } else if (parent instanceof javafx.scene.layout.StackPane) {
+                        ((javafx.scene.layout.StackPane) parent).getChildren().remove(particle);
+                    }
+                }
+            });
+            fade.play();
+        }
+        
+        // INTENSE SCREEN SHAKE on block destruction
+        if (gameBoard != null) {
+            double shakeX = (Math.random() - 0.5) * 8; // -4 to +4 (stronger shake)
+            double shakeY = (Math.random() - 0.5) * 6; // -3 to +3
+            gameBoard.setTranslateX(shakeX);
+            gameBoard.setTranslateY(shakeY);
+            
+            // Reset shake after a short delay
+            Timeline shakeReset = new Timeline(new KeyFrame(Duration.millis(100), e -> {
+                if (gameBoard != null) {
+                    gameBoard.setTranslateX(0);
+                    gameBoard.setTranslateY(0);
+                }
+            }));
+            shakeReset.setCycleCount(1);
+            shakeReset.play();
+        }
+    }
+    
+    /**
+     * Spawns continuous sparks from the drill tip (smaller, less intense than destruction debris).
+     * @param x Screen X coordinate of the drill center
+     * @param y Screen Y coordinate of the drill center
+     */
+    private void spawnDrillSparks(double x, double y) {
+        // Spawn 2-3 small sparks per call (more visible)
+        int particleCount = 2 + (int)(Math.random() * 2); // 2 or 3 particles
+        
+        javafx.scene.Parent root = gamePanel != null && gamePanel.getScene() != null ? 
+            gamePanel.getScene().getRoot() : null;
+        if (root == null) {
+            return;
+        }
+        
+        for (int i = 0; i < particleCount; i++) {
+            // Create spark particle (larger for visibility)
+            double sparkSize = 3 + Math.random() * 2; // 3-5px
+            Rectangle particle = new Rectangle(sparkSize, sparkSize);
+            
+            // Random color: DARKGREY, GREY, or ORANGE (sparks)
+            double colorRand = Math.random();
+            if (colorRand < 0.3) {
+                particle.setFill(Color.DARKGREY);
+            } else if (colorRand < 0.7) {
+                particle.setFill(Color.GREY);
+            } else {
+                particle.setFill(Color.ORANGE); // Bright sparks
+            }
+            
+            // Set initial position at drill center with small random offset
+            double offsetX = (Math.random() - 0.5) * 6; // -3 to +3
+            double offsetY = (Math.random() - 0.5) * 6;
+            particle.setLayoutX(x + offsetX);
+            particle.setLayoutY(y + offsetY);
+            particle.setManaged(false); // Don't let layout manager interfere
+            
+            // Store velocity in userData for update
+            double deltaX = (Math.random() - 0.5) * 4; // -2 to +2
+            double deltaY = -2 - (Math.random() * 3); // -2 to -5 (upwards)
+            particle.setUserData(new double[]{deltaX, deltaY, 0.08}); // velocity + gravity
+            
+            // Add to scene root
+            if (root instanceof javafx.scene.layout.Pane) {
+                ((javafx.scene.layout.Pane) root).getChildren().add(particle);
+            } else if (root instanceof javafx.scene.Group) {
+                ((javafx.scene.Group) root).getChildren().add(particle);
+            } else if (root instanceof javafx.scene.layout.StackPane) {
+                ((javafx.scene.layout.StackPane) root).getChildren().add(particle);
+            }
+            
+            // Bring to front
+            particle.toFront();
+            
+            drillParticles.add(particle);
+            
+            // Fade out and remove after 0.8 seconds
+            FadeTransition fade = new FadeTransition(Duration.millis(800), particle);
+            fade.setFromValue(1.0);
+            fade.setToValue(0.0);
+            fade.setOnFinished(e -> {
+                drillParticles.remove(particle);
+                if (particle.getParent() != null) {
+                    javafx.scene.Parent parent = (javafx.scene.Parent) particle.getParent();
+                    if (parent instanceof javafx.scene.layout.Pane) {
+                        ((javafx.scene.layout.Pane) parent).getChildren().remove(particle);
+                    } else if (parent instanceof javafx.scene.Group) {
+                        ((javafx.scene.Group) parent).getChildren().remove(particle);
+                    } else if (parent instanceof javafx.scene.layout.StackPane) {
+                        ((javafx.scene.layout.StackPane) parent).getChildren().remove(particle);
+                    }
+                }
+            });
+            fade.play();
+        }
+        
+        // CONTINUOUS SCREEN SHAKE: Subtle vibration while drilling
+        if (gameBoard != null && Math.random() < 0.6) { // 60% chance per frame
+            double shakeX = (Math.random() - 0.5) * 2; // -1 to +1 (subtle continuous shake)
+            gameBoard.setTranslateX(shakeX);
+        }
+    }
+    
+    /**
+     * Updates drill particle positions.
+     */
+    private void updateDrillParticles() {
+        java.util.Iterator<Rectangle> iterator = drillParticles.iterator();
+        while (iterator.hasNext()) {
+            Rectangle particle = iterator.next();
+            if (particle.getUserData() instanceof double[]) {
+                double[] velocity = (double[]) particle.getUserData();
+                double currentX = particle.getLayoutX();
+                double currentY = particle.getLayoutY();
+                
+                // Update position
+                particle.setLayoutX(currentX + velocity[0]);
+                particle.setLayoutY(currentY + velocity[1]);
+                
+                // Apply gravity (if present in userData)
+                if (velocity.length > 2) {
+                    velocity[1] += velocity[2]; // Use stored gravity value
+                } else {
+                    velocity[1] += 0.1; // Default gravity for old particles
+                }
+                
+                // Remove if off screen (wider bounds)
+                if (currentY > 1200 || currentY < -200 || currentX < -200 || currentX > 1200) {
+                    iterator.remove();
+                    if (particle.getParent() != null) {
+                        javafx.scene.Parent parent = (javafx.scene.Parent) particle.getParent();
+                        if (parent instanceof javafx.scene.layout.Pane) {
+                            ((javafx.scene.layout.Pane) parent).getChildren().remove(particle);
+                        } else if (parent instanceof javafx.scene.Group) {
+                            ((javafx.scene.Group) parent).getChildren().remove(particle);
+                        } else if (parent instanceof javafx.scene.layout.StackPane) {
+                            ((javafx.scene.layout.StackPane) parent).getChildren().remove(particle);
+                        }
+                    }
+                }
             }
         }
     }

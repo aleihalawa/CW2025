@@ -490,8 +490,14 @@ public class GameController implements InputEventListener {
     
     /**
      * Checks if the player has earned a power-up based on score threshold.
+     * CRITICAL: Only works in POWERUPS mode.
      */
     private void checkPowerUpEarning() {
+        // Only award power-ups in POWERUPS mode
+        if (currentMode != GameMode.POWERUPS) {
+            return;
+        }
+        
         int currentScore = board.getScore().scoreProperty().get();
         
         if (currentScore >= nextPowerUpThreshold) {
@@ -592,6 +598,11 @@ public class GameController implements InputEventListener {
     
     @Override
     public void onPowerUpEvent(int slotIndex) {
+        // CRITICAL: Only allow power-ups in POWERUPS mode
+        if (currentMode != GameMode.POWERUPS) {
+            return;
+        }
+        
         // Call board.usePowerUp(slotIndex)
         PowerUp item = board.usePowerUp(slotIndex);
         

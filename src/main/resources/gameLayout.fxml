@@ -55,7 +55,7 @@
                     <!-- Visual placeholder for next 3 bricks - will be populated later -->
                 </VBox>
             </VBox>
-            <VBox spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
+            <VBox fx:id="inventoryContainer" spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;" visible="false">
                 <Label text="INVENTORY" style="-fx-text-fill: #ffffff; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 0 0 10 0;"/>
                 <VBox fx:id="inventoryPanel" alignment="CENTER" spacing="10">
                     <!-- Inventory items will be populated here -->

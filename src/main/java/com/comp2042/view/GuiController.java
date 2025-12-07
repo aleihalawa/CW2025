@@ -92,6 +92,9 @@ public class GuiController implements Initializable {
     private VBox inventoryPanel;
     
     @FXML
+    private VBox inventoryContainer; // The parent VBox containing the "INVENTORY" label and inventoryPanel
+    
+    @FXML
     private Pane frostOverlay;
     
     @FXML
@@ -352,17 +355,20 @@ public class GuiController implements Initializable {
                         refreshBrick(downData.getViewData());
                         keyEvent.consume();
                     }
-                    if (keyEvent.getCode() == KeyCode.DIGIT1 || keyEvent.getCode() == KeyCode.NUMPAD1) {
-                        eventListener.onPowerUpEvent(0);
-                        keyEvent.consume();
-                    }
-                    if (keyEvent.getCode() == KeyCode.DIGIT2 || keyEvent.getCode() == KeyCode.NUMPAD2) {
-                        eventListener.onPowerUpEvent(1);
-                        keyEvent.consume();
-                    }
-                    if (keyEvent.getCode() == KeyCode.DIGIT3 || keyEvent.getCode() == KeyCode.NUMPAD3) {
-                        eventListener.onPowerUpEvent(2);
-                        keyEvent.consume();
+                    // Power-up key bindings - ONLY work in POWERUPS mode
+                    if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
+                        if (keyEvent.getCode() == KeyCode.DIGIT1 || keyEvent.getCode() == KeyCode.NUMPAD1) {
+                            eventListener.onPowerUpEvent(0);
+                            keyEvent.consume();
+                        }
+                        if (keyEvent.getCode() == KeyCode.DIGIT2 || keyEvent.getCode() == KeyCode.NUMPAD2) {
+                            eventListener.onPowerUpEvent(1);
+                            keyEvent.consume();
+                        }
+                        if (keyEvent.getCode() == KeyCode.DIGIT3 || keyEvent.getCode() == KeyCode.NUMPAD3) {
+                            eventListener.onPowerUpEvent(2);
+                            keyEvent.consume();
+                        }
                     }
                 }
                 if (keyEvent.getCode() == KeyCode.N) {
@@ -376,6 +382,12 @@ public class GuiController implements Initializable {
         reflection.setFraction(0.8);
         reflection.setTopOpacity(0.9);
         reflection.setTopOffset(-12);
+        
+        // Initialize inventory container visibility based on game mode
+        // CRITICAL: Only show inventory in POWERUPS mode - hide entire container in other modes
+        if (inventoryContainer != null) {
+            inventoryContainer.setVisible(GameSettings.getSelectedGameMode() == GameMode.POWERUPS);
+        }
     }
 
     public void initGameView(int[][] boardMatrix, ViewData brick) {
@@ -526,8 +538,15 @@ public class GuiController implements Initializable {
         // Refresh next brick preview with initial data
         refreshNextBrick(brick.getNextBricks());
         
-        // Refresh inventory with initial data
-        refreshInventory(brick.getInventory());
+        // Refresh inventory with initial data - ONLY in POWERUPS mode
+        if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
+            refreshInventory(brick.getInventory());
+        } else {
+            // Hide inventory container completely in non-POWERUPS modes
+            if (inventoryContainer != null) {
+                inventoryContainer.setVisible(false);
+            }
+        }
         
         // Store initial ViewData for color updates during freeze
         lastViewData = brick;
@@ -1022,8 +1041,15 @@ public class GuiController implements Initializable {
             // Update next brick preview
             refreshNextBrick(brick.getNextBricks());
             
-            // Update inventory
-            refreshInventory(brick.getInventory());
+            // Update inventory - ONLY in POWERUPS mode
+            if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
+                refreshInventory(brick.getInventory());
+            } else {
+                // Hide inventory container completely in non-POWERUPS modes
+                if (inventoryContainer != null) {
+                    inventoryContainer.setVisible(false);
+                }
+            }
         }
     }
 
@@ -1067,6 +1093,20 @@ public class GuiController implements Initializable {
     public void refreshInventory(java.util.List<com.comp2042.model.PowerUp> inventory) {
         if (inventoryPanel == null) {
             return;
+        }
+        
+        // CRITICAL: Only show inventory in POWERUPS mode
+        if (GameSettings.getSelectedGameMode() != GameMode.POWERUPS) {
+            // Hide entire inventory container in Classic and Mirror modes
+            if (inventoryContainer != null) {
+                inventoryContainer.setVisible(false);
+            }
+            return;
+        }
+        
+        // Show inventory container in POWERUPS mode
+        if (inventoryContainer != null) {
+            inventoryContainer.setVisible(true);
         }
         
         // Clear existing items
@@ -1579,6 +1619,13 @@ public class GuiController implements Initializable {
         if (ghostPanel != null) {
             ghostPanel.setVisible(true); // Make ghost panel visible again for new game
         }
+        
+        // Update inventory container visibility based on current game mode
+        // CRITICAL: Only show inventory in POWERUPS mode - hide entire container in other modes
+        if (inventoryContainer != null) {
+            inventoryContainer.setVisible(GameSettings.getSelectedGameMode() == GameMode.POWERUPS);
+        }
+        
         eventListener.createNewGame();
         gamePanel.requestFocus();
         timeLine.play();

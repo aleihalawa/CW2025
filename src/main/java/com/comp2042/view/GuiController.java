@@ -477,8 +477,9 @@ public class GuiController implements Initializable {
                     javafx.scene.effect.Glow glow = new javafx.scene.effect.Glow(0.6);
                     rectangle.setEffect(glow);
                 }
-                rectangle.setArcHeight(9);
-                rectangle.setArcWidth(9);
+                // Sharp squares - no rounded corners
+                rectangle.setArcHeight(0);
+                rectangle.setArcWidth(0);
                 ghostRectangles[i][j] = rectangle;
                 ghostPanel.add(rectangle, j, i);
             }
@@ -1003,31 +1004,31 @@ public class GuiController implements Initializable {
                 returnPaint = Color.TRANSPARENT;
                 break;
             case 1:
-                returnPaint = Color.AQUA;
+                returnPaint = Color.web("#00FFFF"); // Cyan - bright neon cyan
                 break;
             case 2:
-                returnPaint = Color.BLUEVIOLET;
+                returnPaint = Color.web("#BA55D3"); // Medium Orchid - purple/magenta
                 break;
             case 3:
-                returnPaint = Color.DARKGREEN;
+                returnPaint = Color.web("#00FF7F"); // Spring Green - neon green
                 break;
             case 4:
-                returnPaint = Color.YELLOW;
+                returnPaint = Color.web("#FFD700"); // Gold - bright gold
                 break;
             case 5:
-                returnPaint = Color.RED;
+                returnPaint = Color.web("#FF1493"); // Deep Pink - neon pink
                 break;
             case 6:
-                returnPaint = Color.BEIGE;
+                returnPaint = Color.web("#1E90FF"); // Dodger Blue - electric blue
                 break;
             case 7:
-                returnPaint = Color.BURLYWOOD;
+                returnPaint = Color.web("#FF8C00"); // Dark Orange - vibrant orange
                 break;
             case 9:
-                returnPaint = Color.DARKGRAY; // Bedrock
+                returnPaint = Color.web("#2F2F2F"); // Dark Gray - Bedrock (slightly lighter for visibility)
                 break;
             default:
-                returnPaint = Color.WHITE;
+                returnPaint = Color.web("#FF00FF"); // Magenta - fallback neon color
                 break;
         }
         return returnPaint;
@@ -1325,8 +1326,9 @@ public class GuiController implements Initializable {
                                         rectangles[i][j].setFill(getFillColor(val));
                                     }
                                 }
-                                rectangles[i][j].setArcHeight(9);
-                                rectangles[i][j].setArcWidth(9);
+                                // Sharp squares - no rounded corners
+                                rectangles[i][j].setArcHeight(0);
+                                rectangles[i][j].setArcWidth(0);
                             } else {
                                 // Empty cell - make transparent
                                 rectangles[i][j].setFill(Color.TRANSPARENT);
@@ -1373,9 +1375,9 @@ public class GuiController implements Initializable {
                             Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
                             // Ghost piece: no fill, only thin outline in brick color with neon glow
                             rectangle.setFill(Color.TRANSPARENT);
-                            // Set arc properties to match initial creation
-                            rectangle.setArcHeight(9);
-                            rectangle.setArcWidth(9);
+                            // Sharp squares - no rounded corners
+                            rectangle.setArcHeight(0);
+                            rectangle.setArcWidth(0);
                             // Set stroke properties (will be updated based on brick data below)
                             rectangle.setStrokeWidth(1.0);
                             rectangle.setStrokeType(StrokeType.INSIDE);
@@ -1618,8 +1620,9 @@ public class GuiController implements Initializable {
                                     grid[row][col].setFill(getFillColor(val));
                                 }
                             }
-                            grid[row][col].setArcHeight(9);
-                            grid[row][col].setArcWidth(9);
+                            // Sharp squares - no rounded corners
+                            grid[row][col].setArcHeight(0);
+                            grid[row][col].setArcWidth(0);
                         }
                     }
                 }
@@ -1679,8 +1682,8 @@ public class GuiController implements Initializable {
     private void setRectangleData(int color, Rectangle rectangle) {
         // Check if this is bedrock (ID 9) - special handling
         if (color == 9) {
-            rectangle.setFill(Color.DARKGRAY);
-            rectangle.setStroke(Color.BLACK);
+            rectangle.setFill(Color.web("#2F2F2F")); // Dark gray matching new palette
+            rectangle.setStroke(Color.web("#1A1A1A")); // Darker border
             rectangle.setStrokeWidth(2.0);
             rectangle.setStrokeType(StrokeType.INSIDE);
         } else if (color == 11 && drillTexture != null) {
@@ -1697,8 +1700,9 @@ public class GuiController implements Initializable {
             }
             rectangle.setStroke(null); // No stroke for normal blocks
         }
-        rectangle.setArcHeight(9);
-        rectangle.setArcWidth(9);
+        // Sharp squares - no rounded corners
+        rectangle.setArcHeight(0);
+        rectangle.setArcWidth(0);
     }
     
     /**
@@ -2965,14 +2969,16 @@ public class GuiController implements Initializable {
             double sparkSize = 3 + Math.random() * 2; // 3-5px
             Rectangle particle = new Rectangle(sparkSize, sparkSize);
             
-            // Random color: DARKGREY, GREY, or ORANGE (sparks)
+            // Random color from cyberpunk palette (cyan, purple, gold, orange)
             double colorRand = Math.random();
-            if (colorRand < 0.3) {
-                particle.setFill(Color.DARKGREY);
-            } else if (colorRand < 0.7) {
-                particle.setFill(Color.GREY);
+            if (colorRand < 0.25) {
+                particle.setFill(Color.web("#00FFFF")); // Cyan
+            } else if (colorRand < 0.5) {
+                particle.setFill(Color.web("#BA55D3")); // Purple
+            } else if (colorRand < 0.75) {
+                particle.setFill(Color.web("#FFD700")); // Gold
             } else {
-                particle.setFill(Color.ORANGE); // Bright sparks
+                particle.setFill(Color.web("#FF8C00")); // Orange
             }
             
             // Set initial position at drill center with small random offset

@@ -3,6 +3,7 @@ package com.comp2042.model;
 import com.comp2042.model.logic.BrickRotator;
 import com.comp2042.model.logic.bricks.Brick;
 import com.comp2042.model.logic.bricks.BrickGenerator;
+import com.comp2042.model.logic.bricks.DrillBrick;
 import com.comp2042.model.logic.bricks.RandomBrickGenerator;
 import com.comp2042.model.logic.CollisionService;
 import com.comp2042.model.logic.LineClearService;
@@ -11,6 +12,16 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Implementation of the Board interface representing the game board state.
+ * Manages the game matrix, brick placement, line clearing, power-ups, and special mechanics
+ * such as bedrock corruption and drill movement.
+ * 
+ * The board uses a matrix representation where:
+ * - Rows (Y-axis) range from 0 to width-1 (typically 0-24)
+ * - Columns (X-axis) range from 0 to height-1 (typically 0-9)
+ * - Matrix access is [row][column] = [y][x]
+ */
 public class SimpleBoard implements Board {
 
     private final int width;
@@ -46,7 +57,7 @@ public class SimpleBoard implements Board {
     public boolean moveBrickDown() {
         // COMPLETE REDESIGN: Drill is a special projectile with independent logic
         Brick currentBrick = brickRotator.getBrick();
-        if (currentBrick instanceof com.comp2042.model.logic.bricks.DrillBrick) {
+        if (currentBrick instanceof DrillBrick) {
             return moveDrillDown();
         } else {
             // Standard Logic: Normal brick movement with collision detection
@@ -108,7 +119,7 @@ public class SimpleBoard implements Board {
      * Used by controller to prevent locking logic for drills.
      */
     public boolean isDrillActive() {
-        return brickRotator.getBrick() instanceof com.comp2042.model.logic.bricks.DrillBrick;
+        return brickRotator.getBrick() instanceof DrillBrick;
     }
     
     /**
@@ -144,7 +155,7 @@ public class SimpleBoard implements Board {
     public boolean moveBrickLeft() {
         // Check if the current brick is a Drill
         Brick currentBrick = brickRotator.getBrick();
-        if (currentBrick instanceof com.comp2042.model.logic.bricks.DrillBrick) {
+        if (currentBrick instanceof DrillBrick) {
             // Drill can move freely left/right - only check screen bounds
             int currentX = (int) currentOffset.getX();
             int currentY = (int) currentOffset.getY();
@@ -185,7 +196,7 @@ public class SimpleBoard implements Board {
     public boolean moveBrickRight() {
         // Check if the current brick is a Drill
         Brick currentBrick = brickRotator.getBrick();
-        if (currentBrick instanceof com.comp2042.model.logic.bricks.DrillBrick) {
+        if (currentBrick instanceof DrillBrick) {
             // Drill can move freely left/right - only check screen bounds
             int currentX = (int) currentOffset.getX();
             int currentY = (int) currentOffset.getY();
@@ -412,7 +423,9 @@ public class SimpleBoard implements Board {
     }
     
     /**
-     * Corrupts the next row by turning existing blocks into bedrock.
+     * Corrupts the next row by converting existing blocks to bedrock.
+     * Bedrock is indestructible and cannot be cleared.
+     * This method is called periodically in Power-Ups mode to create the "rising tide" effect.
      * Starts from the bottom (row 24) and works upwards.
      * 
      * @return true if corruption was successful, false if game over (corruption row < 0)
@@ -502,6 +515,7 @@ public class SimpleBoard implements Board {
     
     /**
      * Checks if there are any floating blocks (blocks with empty space below them).
+     * Used to determine when gravity animation should stop after power-up usage.
      * 
      * @return true if any block has empty space (0) immediately beneath it and is not on the floor
      */
@@ -521,7 +535,8 @@ public class SimpleBoard implements Board {
     
     /**
      * Applies one step of gravity, moving floating blocks down by one row.
-     * This is called repeatedly to create a cascading "avalanche" effect.
+     * This is called repeatedly to create a cascading "avalanche" effect after
+     * power-up usage (bomb or drill). Respects bedrock as solid barriers.
      */
     public void applyGravityStep() {
         // Scan the board from bottom to top (height-1 down to 0)

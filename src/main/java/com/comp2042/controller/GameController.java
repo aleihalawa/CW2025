@@ -226,6 +226,8 @@ public class GameController implements InputEventListener {
                 // Drill finished - it already spawned a new brick in moveDrillDown()
                 // Refresh background to show any blocks that were destroyed
                 viewGuiController.refreshGameBackground(board.getBoardMatrix());
+                // Apply gravity animation to make floating blocks fall down
+                startGravityAnimation();
                 // Do NOT start lock timer or merge - the drill just vanished
                 clearRow = null;
             } else {

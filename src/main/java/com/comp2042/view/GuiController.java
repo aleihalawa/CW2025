@@ -796,6 +796,42 @@ public class GuiController implements Initializable {
     }
     
     /**
+     * Shows a notification when bedrock corruption occurs (a row turns to bedrock).
+     */
+    public void showBedrockCorruptionNotification() {
+        if (groupNotification == null || gameBoard == null) {
+            return;
+        }
+        
+        String message = "BEDROCK RISING!";
+        Color textColor = Color.DARKGRAY;
+        
+        // Create notification panel with custom styling
+        NotificationPanel notificationPanel = new NotificationPanel(message);
+        
+        // Customize the label color
+        javafx.scene.Node centerNode = notificationPanel.getCenter();
+        if (centerNode instanceof Label) {
+            Label label = (Label) centerNode;
+            label.setTextFill(textColor);
+            // Make it prominent with warning style
+            label.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        }
+        
+        // Position it in the center of the screen (relative to gameBoard)
+        double centerX = (gameBoard.getWidth() - notificationPanel.getMinWidth()) / 2;
+        double centerY = (gameBoard.getHeight() - notificationPanel.getMinHeight()) / 2;
+        notificationPanel.setLayoutX(centerX);
+        notificationPanel.setLayoutY(centerY);
+        
+        // Add to notification group
+        groupNotification.getChildren().add(notificationPanel);
+        
+        // Show with animation (fades out and moves up)
+        notificationPanel.showScore(groupNotification.getChildren());
+    }
+    
+    /**
      * Plays an explosion animation at the specified grid position.
      * Includes flash, debris particles, and screen shake effects.
      * 

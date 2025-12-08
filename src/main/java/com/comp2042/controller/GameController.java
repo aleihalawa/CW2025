@@ -491,6 +491,11 @@ public class GameController implements InputEventListener {
                 // Corrupt next row
                 boolean success = ((SimpleBoard) board).corruptNextRow();
                 
+                // Show bedrock corruption notification
+                if (viewGuiController != null && success) {
+                    viewGuiController.showBedrockCorruptionNotification();
+                }
+                
                 // Refresh board view to show bedrock
                 if (viewGuiController != null) {
                     viewGuiController.refreshGameBackground(board.getBoardMatrix());

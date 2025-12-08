@@ -10,12 +10,12 @@ import com.comp2042.model.GameMode;
 import com.comp2042.model.GameSettings;
 import com.comp2042.model.HighScoreManager;
 import com.comp2042.model.PowerUp;
-import com.comp2042.model.Score;
 import com.comp2042.model.ScoreEntry;
 import com.comp2042.model.SimpleBoard;
 import com.comp2042.model.MatrixOperations;
 import com.comp2042.model.SoundManager;
 import com.comp2042.model.ViewData;
+import java.util.List;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -25,6 +25,19 @@ import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
 
+/**
+ * Main game controller that coordinates game logic, user input, and view updates.
+ * Implements the InputEventListener interface to handle player input events.
+ * 
+ * Responsibilities:
+ * - Managing game state and flow
+ * - Handling player input (keyboard and mouse)
+ * - Coordinating between Board model and GuiController view
+ * - Managing power-ups (Freeze, Bomb, Drill)
+ * - Handling game modes (Classic, Mirror, Power-Ups)
+ * - Managing bedrock corruption in Power-Ups mode
+ * - Score management and leaderboard integration
+ */
 public class GameController implements InputEventListener {
 
     private final Board board = new SimpleBoard(25, 10);
@@ -47,18 +60,27 @@ public class GameController implements InputEventListener {
     // Player name
     private String playerName;
     
-    // Power-up earning threshold
-    private int nextPowerUpThreshold = 100;
+    // Power-up earning threshold constants
+    private static final int INITIAL_POWER_UP_THRESHOLD = 100;
+    private static final int POWER_UP_THRESHOLD_INCREMENT = 100;
+    private int nextPowerUpThreshold = INITIAL_POWER_UP_THRESHOLD;
     
     // Bomb targeting state
     private boolean isBombTargeting = false;
     
     // Bedrock Corruption timeline and countdown
+    private static final int CORRUPTION_INTERVAL_SECONDS = 15;
     private Timeline corruptionLoop;
-    private int corruptionCountdown = 15;
+    private int corruptionCountdown = CORRUPTION_INTERVAL_SECONDS;
     
     // Gravity animation timeline (to prevent multiple from running)
     private Timeline gravityTimeline;
+    
+    // Game speed calculation constants
+    private static final double BASE_SPEED_MS = 400.0;
+    private static final double SPEED_DECREMENT_MS = 35.0;
+    private static final double MIN_SPEED_MS = 75.0;
+    private static final int POWERUPS_START_LEVEL = 5;
     
     /**
      * Sets the game mode.
@@ -134,7 +156,7 @@ public class GameController implements InputEventListener {
         // Initialize corruption loop for POWERUPS mode on game start
         if (currentMode == GameMode.POWERUPS) {
             // Start at higher speed/intensity: level 5 for faster pace
-            board.getScore().levelProperty().set(5);
+            board.getScore().levelProperty().set(POWERUPS_START_LEVEL);
             initializeCorruptionLoop();
             if (corruptionLoop != null) {
                 corruptionLoop.play();
@@ -143,7 +165,7 @@ public class GameController implements InputEventListener {
             if (viewGuiController != null && viewGuiController.getCorruptionTimerContainer() != null) {
                 viewGuiController.getCorruptionTimerContainer().setVisible(true);
                 // Initialize timer display to 15
-                viewGuiController.updateCorruptionTimer(15);
+                viewGuiController.updateCorruptionTimer(CORRUPTION_INTERVAL_SECONDS);
             }
         }
     }
@@ -413,10 +435,10 @@ public class GameController implements InputEventListener {
         hasShownPersonalHighScoreNotification = false;
         
         // Reset power-up threshold for new game
-        nextPowerUpThreshold = 100;
+        nextPowerUpThreshold = INITIAL_POWER_UP_THRESHOLD;
         
         // Reset corruption countdown
-        corruptionCountdown = 15;
+                    corruptionCountdown = CORRUPTION_INTERVAL_SECONDS;
         
         // Stop existing corruption loop if running
         if (corruptionLoop != null) {
@@ -450,7 +472,7 @@ public class GameController implements InputEventListener {
         board.newGame();
         // For POWERUPS mode, start at level 5 for faster pace
         if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
-            board.getScore().levelProperty().set(5);
+            board.getScore().levelProperty().set(POWERUPS_START_LEVEL);
         }
         viewGuiController.refreshGameBackground(board.getBoardMatrix());
     }
@@ -478,8 +500,8 @@ public class GameController implements InputEventListener {
      * This runs every 15 seconds in POWERUPS mode, corrupting the lowest playable row.
      */
     private void initializeCorruptionLoop() {
-        // Reset countdown to 15
-        corruptionCountdown = 15;
+        // Reset countdown
+        corruptionCountdown = CORRUPTION_INTERVAL_SECONDS;
         
         // Initialize timer display
         if (viewGuiController != null) {
@@ -498,7 +520,7 @@ public class GameController implements InputEventListener {
             // If countdown reaches 0, corrupt next row
             if (corruptionCountdown <= 0) {
                 // Reset countdown
-                corruptionCountdown = 15;
+                    corruptionCountdown = CORRUPTION_INTERVAL_SECONDS;
                 
                 // Corrupt next row
                 boolean success = ((SimpleBoard) board).corruptNextRow();
@@ -621,10 +643,10 @@ public class GameController implements InputEventListener {
      * @return The delay in milliseconds for the next automatic drop
      */
     private double calculateSpeed(int level) {
-        // Start with 400ms, subtract 35ms for every level above 1
-        double speed = 400.0 - (35.0 * (level - 1));
-        // Clamp to minimum 75ms
-        return Math.max(75.0, speed);
+        // Start with base speed, subtract decrement for every level above 1
+        double speed = BASE_SPEED_MS - (SPEED_DECREMENT_MS * (level - 1));
+        // Clamp to minimum speed
+        return Math.max(MIN_SPEED_MS, speed);
     }
 
     /**
@@ -652,7 +674,9 @@ public class GameController implements InputEventListener {
         
         int currentScore = board.getScore().scoreProperty().get();
         
-        if (currentScore >= nextPowerUpThreshold) {
+        // Keep awarding power-ups until score is below threshold
+        // This handles cases where score jumps significantly (e.g., multiple line clears)
+        while (currentScore >= nextPowerUpThreshold) {
             // Pick a random PowerUp type (BOMB, DRILL, or FREEZE)
             PowerUp[] powerUps = {PowerUp.BOMB, PowerUp.DRILL, PowerUp.FREEZE};
             PowerUp randomPowerUp = powerUps[(int) (Math.random() * powerUps.length)];
@@ -660,11 +684,13 @@ public class GameController implements InputEventListener {
             // Add to inventory
             board.addPowerUp(randomPowerUp);
             
-            // Increase threshold
-            nextPowerUpThreshold += 100;
+            // Increase threshold for next power-up
+            nextPowerUpThreshold += POWER_UP_THRESHOLD_INCREMENT;
             
-            // Update Inventory UI
-            viewGuiController.refreshInventory(board.getInventory());
+            // Update Inventory UI - only in POWERUPS mode
+            if (currentMode == GameMode.POWERUPS) {
+                viewGuiController.refreshInventory(board.getInventory());
+            }
             
             // Show subtle notification that power-up was earned
             viewGuiController.showPowerUpEarned(randomPowerUp);
@@ -686,17 +712,16 @@ public class GameController implements InputEventListener {
      * Loads the player's previous best score from the leaderboard.
      */
     private void loadPlayerPreviousBestScore() {
-        String playerName = com.comp2042.model.GameSettings.getPlayerName();
+        String playerName = GameSettings.getPlayerName();
         if (playerName == null || playerName.trim().isEmpty()) {
             playerName = "Player";
         }
         
         // Load leaderboard and find this player's best score for the current game mode
-        java.util.List<com.comp2042.model.ScoreEntry> leaderboard = 
-            com.comp2042.model.HighScoreManager.loadLeaderboard(currentMode);
+        List<ScoreEntry> leaderboard = HighScoreManager.loadLeaderboard(currentMode);
         
         playerPreviousBestScore = 0;
-        for (com.comp2042.model.ScoreEntry entry : leaderboard) {
+        for (ScoreEntry entry : leaderboard) {
             // Case-sensitive comparison
             if (entry.getName().equals(playerName)) {
                 playerPreviousBestScore = entry.getScore();
@@ -751,12 +776,12 @@ public class GameController implements InputEventListener {
         // Always save/update the player's score entry
         // The saveEntry method will handle updating if the player already exists
         // and will only keep the entry if it qualifies for top 10
-        String playerName = com.comp2042.model.GameSettings.getPlayerName();
+        String playerName = GameSettings.getPlayerName();
         if (playerName == null || playerName.trim().isEmpty()) {
             playerName = "Player";
         }
-        com.comp2042.model.ScoreEntry entry = new com.comp2042.model.ScoreEntry(playerName, finalScore);
-        com.comp2042.model.HighScoreManager.saveEntry(currentMode, entry);
+        ScoreEntry entry = new ScoreEntry(playerName, finalScore);
+        HighScoreManager.saveEntry(currentMode, entry);
         
         // Show game over panel
         viewGuiController.gameOver();
@@ -777,8 +802,10 @@ public class GameController implements InputEventListener {
             return;
         }
         
-        // Update UI
-        viewGuiController.refreshInventory(board.getInventory());
+        // Update UI - only in POWERUPS mode
+        if (currentMode == GameMode.POWERUPS) {
+            viewGuiController.refreshInventory(board.getInventory());
+        }
         
         // Switch Statement for effects
         switch (item) {

@@ -547,7 +547,7 @@ public class GuiController implements Initializable {
         // Refresh next brick preview with initial data
         refreshNextBrick(brick.getNextBricks());
         
-        // Refresh inventory with initial data - ONLY in POWERUPS mode
+        // CRITICAL: Only show inventory and corruption timer in POWERUPS mode
         if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
             refreshInventory(brick.getInventory());
             // Show corruption timer in POWERUPS mode

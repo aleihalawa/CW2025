@@ -20,7 +20,7 @@ public class GameSettings {
     private static double musicVolume = 0.5;
     private static double sfxVolume = 0.5;
     private static String playerName = "Player";
-    private static com.comp2042.model.GameMode selectedMode = com.comp2042.model.GameMode.CLASSIC;
+    private static GameMode selectedMode = GameMode.CLASSIC;
     
     // Load settings when class is first loaded
     static {
@@ -112,7 +112,7 @@ public class GameSettings {
      * 
      * @return The selected game mode
      */
-    public static com.comp2042.model.GameMode getSelectedGameMode() {
+    public static GameMode getSelectedGameMode() {
         return selectedMode;
     }
     
@@ -121,7 +121,7 @@ public class GameSettings {
      * 
      * @param mode The game mode to select
      */
-    public static void setSelectedGameMode(com.comp2042.model.GameMode mode) {
+    public static void setSelectedGameMode(GameMode mode) {
         if (mode != null) {
             selectedMode = mode;
         }

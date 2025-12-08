@@ -646,11 +646,11 @@ public class GuiController implements Initializable {
     public void updateCorruptionTimer(int seconds) {
         if (corruptionTimerLabel != null) {
             corruptionTimerLabel.setText(String.valueOf(seconds));
-            // Change text color to red if 3 seconds or less, else white
+            // Change text color to red if 3 seconds or less, else purple
             if (seconds <= 3) {
-                corruptionTimerLabel.setStyle("-fx-text-fill: #ff0000; -fx-font-size: 24px; -fx-font-weight: bold;");
+                corruptionTimerLabel.setStyle("-fx-text-fill: #ff0000; -fx-font-size: 24px; -fx-font-weight: bold; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif;");
             } else {
-                corruptionTimerLabel.setStyle("-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;");
+                corruptionTimerLabel.setStyle("-fx-text-fill: #BA55D3; -fx-font-size: 24px; -fx-font-weight: bold; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif;");
             }
         }
     }

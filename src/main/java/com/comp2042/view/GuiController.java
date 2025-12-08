@@ -29,6 +29,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.application.Platform;
 import javafx.stage.Stage;
 import javafx.scene.effect.BoxBlur;
 import javafx.scene.effect.ColorAdjust;
@@ -655,6 +656,143 @@ public class GuiController implements Initializable {
                 corruptionTimerLabel.setStyle("-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;");
             }
         }
+    }
+    
+    /**
+     * Shows a subtle notification when a power-up is earned (added to inventory).
+     * Positioned near the inventory panel, not distracting.
+     * 
+     * @param powerUpType The type of power-up that was earned
+     */
+    public void showPowerUpEarned(com.comp2042.model.PowerUp powerUpType) {
+        if (groupNotification == null || inventoryContainer == null) {
+            return;
+        }
+        
+        String message;
+        Color textColor;
+        
+        switch (powerUpType) {
+            case FREEZE:
+                message = "Freeze Earned!";
+                textColor = Color.CYAN;
+                break;
+            case BOMB:
+                message = "Bomb Earned!";
+                textColor = Color.RED;
+                break;
+            case DRILL:
+                message = "Drill Earned!";
+                textColor = Color.GREY;
+                break;
+            default:
+                return; // Don't show notification for NONE
+        }
+        
+        // Create a smaller, more subtle notification panel
+        NotificationPanel notificationPanel = new NotificationPanel(message);
+        
+        // Make it smaller and more subtle
+        notificationPanel.setMinWidth(150);
+        notificationPanel.setMinHeight(60);
+        
+        // Customize the label color and make it smaller
+        javafx.scene.Node centerNode = notificationPanel.getCenter();
+        if (centerNode instanceof Label) {
+            Label label = (Label) centerNode;
+            label.setTextFill(textColor);
+            // Smaller, more subtle font
+            label.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        }
+        
+        // Position it near the inventory panel (top-right area), using scene coordinates to be robust
+        // Use final array to hold position values for lambda
+        final double[] position = {450, 50}; // [x, y] - default fallback position
+
+        // Compute position relative to gameBoard and translate to groupNotification's parent
+        Platform.runLater(() -> {
+            try {
+                javafx.geometry.Point2D scenePt = gameBoard.localToScene(gameBoard.getWidth(), 0);
+                javafx.scene.Parent parent = groupNotification.getParent();
+                if (scenePt != null && parent != null) {
+                    javafx.geometry.Point2D localPt = parent.sceneToLocal(scenePt);
+                    position[0] = localPt.getX() - 170; // offset left
+                    position[1] = localPt.getY() + 20;  // small top offset
+                }
+            } catch (Exception ignored) { }
+
+            notificationPanel.setLayoutX(position[0]);
+            notificationPanel.setLayoutY(position[1]);
+
+            // Add to notification group and bring to front
+            groupNotification.getChildren().add(notificationPanel);
+            groupNotification.toFront();
+
+            // Show with shorter, more subtle animation
+            FadeTransition ft = new FadeTransition(Duration.millis(1500), notificationPanel);
+            TranslateTransition tt = new TranslateTransition(Duration.millis(2000), notificationPanel);
+            tt.setToY(notificationPanel.getLayoutY() - 20); // Move up slightly
+            ft.setFromValue(1);
+            ft.setToValue(0);
+            ParallelTransition transition = new ParallelTransition(tt, ft);
+            transition.setOnFinished(e -> groupNotification.getChildren().remove(notificationPanel));
+            transition.play();
+        });
+    }
+    
+    /**
+     * Shows a power-up activation notification popup.
+     * 
+     * @param powerUpType The type of power-up that was activated
+     */
+    public void showPowerUpActivation(com.comp2042.model.PowerUp powerUpType) {
+        if (groupNotification == null) {
+            return;
+        }
+        
+        String message;
+        Color textColor;
+        
+        switch (powerUpType) {
+            case FREEZE:
+                message = "FREEZE ACTIVATED!";
+                textColor = Color.CYAN;
+                break;
+            case BOMB:
+                message = "BOMB ACTIVATED!";
+                textColor = Color.RED;
+                break;
+            case DRILL:
+                message = "DRILL ACTIVATED!";
+                textColor = Color.GREY;
+                break;
+            default:
+                return; // Don't show notification for NONE
+        }
+        
+        // Create notification panel with custom styling
+        NotificationPanel notificationPanel = new NotificationPanel(message);
+        
+        // Customize the label color
+        javafx.scene.Node centerNode = notificationPanel.getCenter();
+        if (centerNode instanceof Label) {
+            Label label = (Label) centerNode;
+            label.setTextFill(textColor);
+            // Make it more prominent
+            label.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+        }
+        
+        // Position it in the center of the screen (relative to gameBoard)
+        double centerX = (gameBoard.getWidth() - notificationPanel.getMinWidth()) / 2;
+        double centerY = (gameBoard.getHeight() - notificationPanel.getMinHeight()) / 2;
+        notificationPanel.setLayoutX(centerX);
+        notificationPanel.setLayoutY(centerY);
+        
+        // Add to notification group
+        groupNotification.getChildren().add(notificationPanel);
+        
+        // Show with animation (fades out and moves up)
+        notificationPanel.showScore(groupNotification.getChildren());
     }
     
     /**

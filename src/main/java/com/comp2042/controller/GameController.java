@@ -118,8 +118,8 @@ public class GameController implements InputEventListener {
         
         // Initialize corruption loop for POWERUPS mode on game start
         if (currentMode == GameMode.POWERUPS) {
-            // Start at higher speed/intensity: level 10 for intense fast pace
-            board.getScore().levelProperty().set(10);
+            // Start at higher speed/intensity: level 5 for faster pace
+            board.getScore().levelProperty().set(5);
             initializeCorruptionLoop();
             if (corruptionLoop != null) {
                 corruptionLoop.play();
@@ -427,9 +427,9 @@ public class GameController implements InputEventListener {
         loadPlayerPreviousBestScore();
         
         board.newGame();
-        // For POWERUPS mode, start at level 10 for intense fast pace
+        // For POWERUPS mode, start at level 5 for faster pace
         if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
-            board.getScore().levelProperty().set(10);
+            board.getScore().levelProperty().set(5);
         }
         viewGuiController.refreshGameBackground(board.getBoardMatrix());
     }
@@ -639,6 +639,9 @@ public class GameController implements InputEventListener {
             
             // Update Inventory UI
             viewGuiController.refreshInventory(board.getInventory());
+            
+            // Show subtle notification that power-up was earned
+            viewGuiController.showPowerUpEarned(randomPowerUp);
         }
     }
 
@@ -776,6 +779,9 @@ public class GameController implements InputEventListener {
     private void activateFreeze() {
         System.out.println("Freeze Active!");
         
+        // Show activation notification
+        viewGuiController.showPowerUpActivation(PowerUp.FREEZE);
+        
         // Enable freeze visual effects
         viewGuiController.setFreezeEffect(true);
         
@@ -795,6 +801,9 @@ public class GameController implements InputEventListener {
      * Enters bomb targeting mode, allowing the player to click on the board to select a target.
      */
     private void enterBombTargetingMode() {
+        // Show activation notification
+        viewGuiController.showPowerUpActivation(PowerUp.BOMB);
+        
         isBombTargeting = true;
         viewGuiController.setGameCursor(Cursor.CROSSHAIR);
         System.out.println("Select Target");
@@ -899,6 +908,9 @@ public class GameController implements InputEventListener {
      */
     private void activateDrill() {
         System.out.println("Drill activated!");
+        
+        // Show activation notification
+        viewGuiController.showPowerUpActivation(PowerUp.DRILL);
         
         // Stop any lock timer
         lockTimer.stop();

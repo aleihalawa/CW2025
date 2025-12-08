@@ -26,6 +26,10 @@ public class SimpleBoard implements Board {
     private static final int SPAWN_Y = 0;
     private boolean isLocking = false;
     private final List<PowerUp> inventory = new ArrayList<>();
+    
+    // Bedrock Corruption constants
+    public static final int BEDROCK_ID = 9;
+    private int currentCorruptionRow = 24; // Initialize to bottom row (width - 1, since width=25, rows are 0-24)
 
     public SimpleBoard(int width, int height) {
         this.width = width;
@@ -82,6 +86,15 @@ public class SimpleBoard implements Board {
             return false; // Stop movement - but this is NOT a collision, it's completion
         }
         
+        // BEDROCK CHECK: If target cell is bedrock, stop the drill
+        if (nextY >= 0 && nextY < width && currentX >= 0 && currentX < height) {
+            if (currentGameMatrix[nextY][currentX] == BEDROCK_ID) {
+                // Drill cannot penetrate bedrock - stop and spawn new brick
+                createNewBrick();
+                return false;
+            }
+        }
+        
         // DESTRUCTION: Destroy any block at the target position before moving
         // Matrix structure: currentGameMatrix is [width][height] = [25][10]
         // Matrix is accessed as matrix[row][column] = matrix[y][x]
@@ -90,7 +103,7 @@ public class SimpleBoard implements Board {
         if (nextY >= 0 && nextY < width && currentX >= 0 && currentX < height) {
             // Access as [row][column] = [nextY][currentX]
             if (currentGameMatrix[nextY][currentX] != 0) {
-                // Destroy the block
+                // Destroy the block (but not bedrock, which we already checked above)
                 currentGameMatrix[nextY][currentX] = 0;
             }
         }
@@ -124,13 +137,20 @@ public class SimpleBoard implements Board {
                 return false;
             }
             
+            // BEDROCK CHECK: If target cell is bedrock, cannot move
+            if (currentY >= 0 && currentY < width && newX >= 0 && newX < height) {
+                if (currentGameMatrix[currentY][newX] == BEDROCK_ID) {
+                    return false; // Cannot move through bedrock
+                }
+            }
+            
             // DESTRUCTION: Destroy any block at the new position before moving
             // Matrix is [row][column] = [y][x]
             // To access row currentY (0-24) and column newX (0-9): matrix[currentY][newX]
             if (currentY >= 0 && currentY < width && newX >= 0 && newX < height) {
                 // Access as [row][column] = [currentY][newX]
                 if (currentGameMatrix[currentY][newX] != 0) {
-                    // Destroy the block
+                    // Destroy the block (but not bedrock, which we already checked above)
                     currentGameMatrix[currentY][newX] = 0;
                 }
             }
@@ -169,13 +189,20 @@ public class SimpleBoard implements Board {
                 return false;
             }
             
+            // BEDROCK CHECK: If target cell is bedrock, cannot move
+            if (currentY >= 0 && currentY < width && newX >= 0 && newX < height) {
+                if (currentGameMatrix[currentY][newX] == BEDROCK_ID) {
+                    return false; // Cannot move through bedrock
+                }
+            }
+            
             // DESTRUCTION: Destroy any block at the new position before moving
             // Matrix is [row][column] = [y][x]
             // To access row currentY (0-24) and column newX (0-9): matrix[currentY][newX]
             if (currentY >= 0 && currentY < width && newX >= 0 && newX < height) {
                 // Access as [row][column] = [currentY][newX]
                 if (currentGameMatrix[currentY][newX] != 0) {
-                    // Destroy the block
+                    // Destroy the block (but not bedrock, which we already checked above)
                     currentGameMatrix[currentY][newX] = 0;
                 }
             }
@@ -318,8 +345,48 @@ public class SimpleBoard implements Board {
 
     @Override
     public ClearRow clearRows() {
-        ClearRow clearRow = lineClearService.clearFullLines(currentGameMatrix);
-        currentGameMatrix = clearRow.getNewMatrix();
+        // Standard Tetris line clearing: use the standard service, but skip rows with bedrock
+        // Create a copy where rows with bedrock are marked as non-full (so they won't be cleared)
+        int[][] matrixCopy = new int[width][height];
+        for (int i = 0; i < width; i++) {
+            boolean rowHasBedrock = false;
+            // Check if this row contains bedrock
+            for (int j = 0; j < height; j++) {
+                if (currentGameMatrix[i][j] == BEDROCK_ID) {
+                    rowHasBedrock = true;
+                    break;
+                }
+            }
+            
+            // If row has bedrock, mark it as non-full by leaving one cell empty
+            // Otherwise, copy the row normally
+            for (int j = 0; j < height; j++) {
+                if (rowHasBedrock) {
+                    // Mark as non-full by leaving first cell empty (prevents clearing)
+                    matrixCopy[i][j] = (j == 0) ? 0 : currentGameMatrix[i][j];
+                } else {
+                    matrixCopy[i][j] = currentGameMatrix[i][j];
+                }
+            }
+        }
+        
+        // Use standard line clearing service (standard Tetris behavior - immediate gravity)
+        ClearRow clearRow = lineClearService.clearFullLines(matrixCopy);
+        
+        // Apply the cleared matrix, but preserve bedrock blocks
+        int[][] newMatrix = clearRow.getNewMatrix();
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                // If the original had bedrock, keep it
+                if (currentGameMatrix[i][j] == BEDROCK_ID) {
+                    // Keep bedrock - don't overwrite
+                    continue;
+                }
+                // Otherwise, apply the cleared matrix (standard Tetris gravity)
+                currentGameMatrix[i][j] = newMatrix[i][j];
+            }
+        }
+        
         return clearRow;
     }
 
@@ -336,7 +403,39 @@ public class SimpleBoard implements Board {
         currentGameMatrix = new int[width][height];
         score.reset();
         inventory.clear();
+        currentCorruptionRow = 24; // Reset to bottom row
         createNewBrick();
+    }
+    
+    /**
+     * Corrupts the next row by turning existing blocks into bedrock.
+     * Starts from the bottom (row 24) and works upwards.
+     * 
+     * @return true if corruption was successful, false if game over (corruption row < 0)
+     */
+    public boolean corruptNextRow() {
+        // Start from the bottom row (24) and work upwards
+        // currentCorruptionRow starts at 24 (bottom), and we corrupt it, then decrement for next time
+        
+        // Game Over Check: If corruption row is below 0, game is over
+        if (currentCorruptionRow < 0) {
+            return false; // Game over
+        }
+        
+        // Transformation: Loop through the CURRENT row and turn existing blocks to bedrock
+        // Only turn existing blocks (non-zero and not already bedrock) to bedrock, leave empty cells as 0
+        for (int col = 0; col < height; col++) {
+            if (currentGameMatrix[currentCorruptionRow][col] != 0 && 
+                currentGameMatrix[currentCorruptionRow][col] != BEDROCK_ID) {
+                // Turn existing block to bedrock
+                currentGameMatrix[currentCorruptionRow][col] = BEDROCK_ID;
+            }
+        }
+        
+        // Decrement corruption row (move up one row) for NEXT corruption
+        currentCorruptionRow--;
+        
+        return true; // Corruption successful
     }
     
     @Override
@@ -384,6 +483,10 @@ public class SimpleBoard implements Board {
                 
                 // Bounds check: ensure we're within the board
                 if (targetRow >= 0 && targetRow < width && targetCol >= 0 && targetCol < height) {
+                    // BEDROCK CHECK: Do not destroy bedrock
+                    if (currentGameMatrix[targetRow][targetCol] == BEDROCK_ID) {
+                        continue; // Skip bedrock - it's indestructible
+                    }
                     // Destroy the block (set to 0)
                     currentGameMatrix[targetRow][targetCol] = 0;
                 }

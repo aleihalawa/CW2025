@@ -116,6 +116,21 @@ public class GuiController implements Initializable {
 
     @FXML
     private Label linesLabel;
+    
+    @FXML
+    private Label corruptionTimerLabel;
+    
+    @FXML
+    private VBox corruptionTimerContainer;
+    
+    /**
+     * Gets the corruption timer container for visibility control.
+     * 
+     * @return The corruption timer container VBox
+     */
+    public VBox getCorruptionTimerContainer() {
+        return corruptionTimerContainer;
+    }
 
     @FXML
     private Button pauseButton;
@@ -543,10 +558,18 @@ public class GuiController implements Initializable {
         // Refresh inventory with initial data - ONLY in POWERUPS mode
         if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
             refreshInventory(brick.getInventory());
+            // Show corruption timer in POWERUPS mode
+            if (corruptionTimerContainer != null) {
+                corruptionTimerContainer.setVisible(true);
+            }
         } else {
             // Hide inventory container completely in non-POWERUPS modes
             if (inventoryContainer != null) {
                 inventoryContainer.setVisible(false);
+            }
+            // Hide corruption timer in non-POWERUPS modes
+            if (corruptionTimerContainer != null) {
+                corruptionTimerContainer.setVisible(false);
             }
         }
         
@@ -614,6 +637,23 @@ public class GuiController implements Initializable {
     public void setGameCursor(Cursor cursor) {
         if (gameBoard != null) {
             gameBoard.setCursor(cursor);
+        }
+    }
+    
+    /**
+     * Updates the corruption timer display.
+     * 
+     * @param seconds The number of seconds remaining until next corruption
+     */
+    public void updateCorruptionTimer(int seconds) {
+        if (corruptionTimerLabel != null) {
+            corruptionTimerLabel.setText(String.valueOf(seconds));
+            // Change text color to red if 3 seconds or less, else white
+            if (seconds <= 3) {
+                corruptionTimerLabel.setStyle("-fx-text-fill: #ff0000; -fx-font-size: 24px; -fx-font-weight: bold;");
+            } else {
+                corruptionTimerLabel.setStyle("-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;");
+            }
         }
     }
     
@@ -811,6 +851,9 @@ public class GuiController implements Initializable {
                 break;
             case 7:
                 returnPaint = Color.BURLYWOOD;
+                break;
+            case 9:
+                returnPaint = Color.DARKGRAY; // Bedrock
                 break;
             default:
                 returnPaint = Color.WHITE;
@@ -1444,10 +1487,17 @@ public class GuiController implements Initializable {
     }
 
     private void setRectangleData(int color, Rectangle rectangle) {
-        // Check if this is a drill (ID 11) and use texture
-        if (color == 11 && drillTexture != null) {
+        // Check if this is bedrock (ID 9) - special handling
+        if (color == 9) {
+            rectangle.setFill(Color.DARKGRAY);
+            rectangle.setStroke(Color.BLACK);
+            rectangle.setStrokeWidth(2.0);
+            rectangle.setStrokeType(StrokeType.INSIDE);
+        } else if (color == 11 && drillTexture != null) {
+            // Check if this is a drill (ID 11) and use texture
             // Scale image to match brick size (20x20)
             rectangle.setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
+            rectangle.setStroke(null); // No stroke for drill
         } else {
             // Check if frozen and use glacier colors
             if (isFrozen) {
@@ -1455,6 +1505,7 @@ public class GuiController implements Initializable {
             } else {
                 rectangle.setFill(getFillColor(color));
             }
+            rectangle.setStroke(null); // No stroke for normal blocks
         }
         rectangle.setArcHeight(9);
         rectangle.setArcWidth(9);
@@ -1817,6 +1868,11 @@ public class GuiController implements Initializable {
             inventoryContainer.setVisible(GameSettings.getSelectedGameMode() == GameMode.POWERUPS);
         }
         
+        // Update corruption timer visibility based on current game mode
+        if (corruptionTimerContainer != null) {
+            corruptionTimerContainer.setVisible(GameSettings.getSelectedGameMode() == GameMode.POWERUPS);
+        }
+        
         eventListener.createNewGame();
         gamePanel.requestFocus();
         timeLine.play();
@@ -1842,6 +1898,10 @@ public class GuiController implements Initializable {
             isPause.setValue(Boolean.TRUE);
             if (timeLine != null) {
                 timeLine.pause();
+            }
+            // Pause corruption loop if game controller is available
+            if (gameController != null) {
+                gameController.pauseCorruptionLoop();
             }
             pauseButton.setText("RESUME");
             
@@ -1876,6 +1936,10 @@ public class GuiController implements Initializable {
             isPause.setValue(Boolean.FALSE);
             if (timeLine != null) {
                 timeLine.play();
+            }
+            // Resume corruption loop if game controller is available
+            if (gameController != null) {
+                gameController.resumeCorruptionLoop();
             }
             pauseButton.setText("PAUSE");
             

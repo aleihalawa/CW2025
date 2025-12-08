@@ -41,6 +41,10 @@ public class GameController implements InputEventListener {
     // Bomb targeting state
     private boolean isBombTargeting = false;
     
+    // Bedrock Corruption timeline and countdown
+    private Timeline corruptionLoop;
+    private int corruptionCountdown = 15;
+    
     /**
      * Sets the game mode.
      * Also updates ghost piece mirror mode.
@@ -111,6 +115,22 @@ public class GameController implements InputEventListener {
         
         // Load and play background music
         loadBackgroundMusic();
+        
+        // Initialize corruption loop for POWERUPS mode on game start
+        if (currentMode == GameMode.POWERUPS) {
+            // Start at higher speed/intensity: level 10 for intense fast pace
+            board.getScore().levelProperty().set(10);
+            initializeCorruptionLoop();
+            if (corruptionLoop != null) {
+                corruptionLoop.play();
+            }
+            // Show corruption timer UI
+            if (viewGuiController != null && viewGuiController.getCorruptionTimerContainer() != null) {
+                viewGuiController.getCorruptionTimerContainer().setVisible(true);
+                // Initialize timer display to 15
+                viewGuiController.updateCorruptionTimer(15);
+            }
+        }
     }
     
     /**
@@ -380,11 +400,110 @@ public class GameController implements InputEventListener {
         // Reset power-up threshold for new game
         nextPowerUpThreshold = 100;
         
+        // Reset corruption countdown
+        corruptionCountdown = 15;
+        
+        // Stop existing corruption loop if running
+        if (corruptionLoop != null) {
+            corruptionLoop.stop();
+        }
+        
+        // Initialize corruption loop for POWERUPS mode
+        if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
+            initializeCorruptionLoop();
+            corruptionLoop.play();
+            // Show corruption timer UI
+            if (viewGuiController != null && viewGuiController.getCorruptionTimerContainer() != null) {
+                viewGuiController.getCorruptionTimerContainer().setVisible(true);
+            }
+        } else {
+            // Hide corruption timer UI in other modes
+            if (viewGuiController != null && viewGuiController.getCorruptionTimerContainer() != null) {
+                viewGuiController.getCorruptionTimerContainer().setVisible(false);
+            }
+        }
+        
         // Reload player's previous best score (in case leaderboard was updated)
         loadPlayerPreviousBestScore();
         
         board.newGame();
+        // For POWERUPS mode, start at level 10 for intense fast pace
+        if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
+            board.getScore().levelProperty().set(10);
+        }
         viewGuiController.refreshGameBackground(board.getBoardMatrix());
+    }
+    
+    /**
+     * Pauses the corruption loop timeline.
+     */
+    public void pauseCorruptionLoop() {
+        if (corruptionLoop != null && corruptionLoop.getStatus() == Animation.Status.RUNNING) {
+            corruptionLoop.pause();
+        }
+    }
+    
+    /**
+     * Resumes the corruption loop timeline.
+     */
+    public void resumeCorruptionLoop() {
+        if (corruptionLoop != null && corruptionLoop.getStatus() == Animation.Status.PAUSED) {
+            corruptionLoop.play();
+        }
+    }
+    
+    /**
+     * Initializes the corruption loop timeline for Bedrock Corruption mechanic.
+     * This runs every 15 seconds in POWERUPS mode, corrupting the lowest playable row.
+     */
+    private void initializeCorruptionLoop() {
+        // Reset countdown to 15
+        corruptionCountdown = 15;
+        
+        // Initialize timer display
+        if (viewGuiController != null) {
+            viewGuiController.updateCorruptionTimer(corruptionCountdown);
+        }
+        
+        corruptionLoop = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            // Decrement countdown
+            corruptionCountdown--;
+            
+            // Update UI
+            if (viewGuiController != null) {
+                viewGuiController.updateCorruptionTimer(corruptionCountdown);
+            }
+            
+            // If countdown reaches 0, corrupt next row
+            if (corruptionCountdown <= 0) {
+                // Reset countdown
+                corruptionCountdown = 15;
+                
+                // Corrupt next row
+                boolean success = ((SimpleBoard) board).corruptNextRow();
+                
+                // Refresh board view to show bedrock
+                if (viewGuiController != null) {
+                    viewGuiController.refreshGameBackground(board.getBoardMatrix());
+                }
+                
+                // If corruption failed (game over), trigger game over
+                if (!success) {
+                    // Game over - corruption reached the top
+                    // Find where game over is handled
+                    if (viewGuiController != null) {
+                        viewGuiController.gameOver();
+                    }
+                    // Stop corruption loop
+                    if (corruptionLoop != null) {
+                        corruptionLoop.stop();
+                    }
+                }
+            }
+        }));
+        
+        // Set to repeat indefinitely
+        corruptionLoop.setCycleCount(Timeline.INDEFINITE);
     }
     
     /**
@@ -586,6 +705,11 @@ public class GameController implements InputEventListener {
      * Handles game over logic: saves score if it qualifies for leaderboard.
      */
     private void handleGameOver() {
+        // Stop corruption loop if running
+        if (corruptionLoop != null) {
+            corruptionLoop.stop();
+        }
+        
         int finalScore = board.getScore().scoreProperty().get();
         
         // Check if this score qualifies for the leaderboard

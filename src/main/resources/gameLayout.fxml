@@ -33,6 +33,10 @@
                 <Label text="LINES" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
                 <Label fx:id="linesLabel" text="0" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
             </VBox>
+            <VBox fx:id="corruptionTimerContainer" spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #ff0000; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;" visible="false">
+                <Label text="DANGER" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                <Label fx:id="corruptionTimerLabel" text="15" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
+            </VBox>
         </VBox>
         
         <!-- Center: Game Board -->

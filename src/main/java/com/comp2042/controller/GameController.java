@@ -7,6 +7,8 @@ import com.comp2042.model.*;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.scene.Cursor;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
@@ -35,6 +37,9 @@ public class GameController implements InputEventListener {
     
     // Power-up earning threshold
     private int nextPowerUpThreshold = 100;
+    
+    // Bomb targeting state
+    private boolean isBombTargeting = false;
     
     /**
      * Sets the game mode.
@@ -620,7 +625,7 @@ public class GameController implements InputEventListener {
                 activateFreeze();
                 break;
             case BOMB:
-                activateBombMode(); // Placeholder
+                enterBombTargetingMode();
                 break;
             case DRILL:
                 activateDrill(); // Placeholder
@@ -661,11 +666,67 @@ public class GameController implements InputEventListener {
     }
     
     /**
-     * Placeholder for BOMB power-up effect.
+     * Enters bomb targeting mode, allowing the player to click on the board to select a target.
      */
-    private void activateBombMode() {
-        // TODO: Implement bomb effect
-        System.out.println("Bomb activated (placeholder)");
+    private void enterBombTargetingMode() {
+        isBombTargeting = true;
+        viewGuiController.setGameCursor(Cursor.CROSSHAIR);
+        System.out.println("Select Target");
+    }
+    
+    /**
+     * Handles mouse click events when in bomb targeting mode.
+     * Converts pixel coordinates to grid coordinates and explodes blocks at that position.
+     * 
+     * @param event The mouse event containing click coordinates
+     */
+    public void handleMouseClick(MouseEvent event) {
+        if (!isBombTargeting) {
+            return;
+        }
+        
+        // Get click coordinates relative to gameBoard (BorderPane)
+        // The event coordinates are relative to the source node (gameBoard)
+        // gamePanel (GridPane) is in the center of gameBoard, so coordinates align directly
+        
+        // Block size is 20px (BRICK_SIZE) + 1px gap = 21px per cell
+        final int BLOCK_SIZE = 21;
+        
+        // Get the click position relative to gameBoard
+        // Since gamePanel fills the center of gameBoard and gameBoard is sized to match the board,
+        // the coordinates are directly usable for grid conversion
+        double clickX = event.getX();
+        double clickY = event.getY();
+        
+        // Convert pixel coordinates to grid coordinates
+        // Column (X): divide by block size
+        int col = (int) (clickX / BLOCK_SIZE);
+        
+        // Row (Y): divide by block size, but account for the 2 hidden rows at the top
+        // The visible board starts at row 2, so we add 2 to the calculated row
+        int row = (int) (clickY / BLOCK_SIZE) + 2;
+        
+        // Bounds check: ensure coordinates are within valid range
+        // Board dimensions: width=25 (rows), height=10 (columns)
+        // Matrix is [row][column] = [25][10]
+        // Valid rows: 2-24 (visible board), valid columns: 0-9
+        if (row >= 2 && row < board.getBoardMatrix().length && col >= 0 && col < board.getBoardMatrix()[0].length) {
+            // Explode at the target position
+            board.explodeAt(row, col);
+            
+            // Exit targeting mode
+            isBombTargeting = false;
+            
+            // Reset cursor
+            viewGuiController.setGameCursor(Cursor.DEFAULT);
+            
+            // Refresh view to show destroyed blocks
+            viewGuiController.refreshGameBackground(board.getBoardMatrix());
+        } else {
+            // Click was outside the board - exit targeting mode without exploding
+            isBombTargeting = false;
+            viewGuiController.setGameCursor(Cursor.DEFAULT);
+        }
     }
     
     /**

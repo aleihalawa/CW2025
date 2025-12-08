@@ -363,4 +363,30 @@ public class SimpleBoard implements Board {
         // Return defensive copy
         return new ArrayList<>(inventory);
     }
+    
+    /**
+     * Explodes blocks at the specified grid position, destroying blocks in a 3x3 radius.
+     * 
+     * @param row The row (Y coordinate) in the game matrix
+     * @param col The column (X coordinate) in the game matrix
+     */
+    @Override
+    public void explodeAt(int row, int col) {
+        // Explosion radius: 3x3 area (1 block in each direction from center)
+        int radius = 1;
+        
+        // Iterate through all cells in the explosion radius
+        for (int dy = -radius; dy <= radius; dy++) {
+            for (int dx = -radius; dx <= radius; dx++) {
+                int targetRow = row + dy;
+                int targetCol = col + dx;
+                
+                // Bounds check: ensure we're within the board
+                if (targetRow >= 0 && targetRow < width && targetCol >= 0 && targetCol < height) {
+                    // Destroy the block (set to 0)
+                    currentGameMatrix[targetRow][targetCol] = 0;
+                }
+            }
+        }
+    }
 }

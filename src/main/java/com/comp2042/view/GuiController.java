@@ -34,8 +34,10 @@ import javafx.scene.effect.BoxBlur;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.Glow;
 import javafx.scene.effect.Reflection;
+import javafx.scene.Cursor;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -550,6 +552,12 @@ public class GuiController implements Initializable {
         
         // Store initial ViewData for color updates during freeze
         lastViewData = brick;
+        
+        // Set up mouse click handler for bomb targeting (if gameController is available)
+        if (gameController != null) {
+            // Attach mouse click listener to gameBoard for bomb targeting
+            gameBoard.setOnMouseClicked(gameController::handleMouseClick);
+        }
     }
 
     /**
@@ -595,6 +603,17 @@ public class GuiController implements Initializable {
             isGameOver.getValue() == Boolean.FALSE &&
             timeLine.getStatus() == javafx.animation.Animation.Status.PAUSED) {
             timeLine.play();
+        }
+    }
+    
+    /**
+     * Sets the cursor for the game board.
+     * 
+     * @param cursor The cursor to set (e.g., Cursor.CROSSHAIR, Cursor.DEFAULT)
+     */
+    public void setGameCursor(Cursor cursor) {
+        if (gameBoard != null) {
+            gameBoard.setCursor(cursor);
         }
     }
 
@@ -1391,6 +1410,10 @@ public class GuiController implements Initializable {
         // Store GameController reference if it's a GameController
         if (eventListener instanceof com.comp2042.controller.GameController) {
             this.gameController = (com.comp2042.controller.GameController) eventListener;
+            // Set up mouse click handler for bomb targeting
+            if (gameBoard != null && gameController != null) {
+                gameBoard.setOnMouseClicked(gameController::handleMouseClick);
+            }
         }
     }
 

@@ -38,4 +38,6 @@ public interface Board {
     PowerUp usePowerUp(int index);
     /** Returns a copy of the current inventory. */
     List<PowerUp> getInventory();
+    /** Explodes blocks at the specified grid position, destroying blocks in a radius. */
+    void explodeAt(int row, int col);
 }

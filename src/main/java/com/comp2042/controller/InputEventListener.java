@@ -17,4 +17,6 @@ public interface InputEventListener {
     DownData onSpaceEvent(MoveEvent event);
 
     void createNewGame();
+    
+    void onPowerUpEvent(int slotIndex);
 }

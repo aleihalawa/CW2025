@@ -7,6 +7,8 @@ import com.comp2042.model.*;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.scene.Cursor;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
@@ -32,6 +34,19 @@ public class GameController implements InputEventListener {
     
     // Player name
     private String playerName;
+    
+    // Power-up earning threshold
+    private int nextPowerUpThreshold = 100;
+    
+    // Bomb targeting state
+    private boolean isBombTargeting = false;
+    
+    // Bedrock Corruption timeline and countdown
+    private Timeline corruptionLoop;
+    private int corruptionCountdown = 15;
+    
+    // Gravity animation timeline (to prevent multiple from running)
+    private Timeline gravityTimeline;
     
     /**
      * Sets the game mode.
@@ -103,6 +118,22 @@ public class GameController implements InputEventListener {
         
         // Load and play background music
         loadBackgroundMusic();
+        
+        // Initialize corruption loop for POWERUPS mode on game start
+        if (currentMode == GameMode.POWERUPS) {
+            // Start at higher speed/intensity: level 5 for faster pace
+            board.getScore().levelProperty().set(5);
+            initializeCorruptionLoop();
+            if (corruptionLoop != null) {
+                corruptionLoop.play();
+            }
+            // Show corruption timer UI
+            if (viewGuiController != null && viewGuiController.getCorruptionTimerContainer() != null) {
+                viewGuiController.getCorruptionTimerContainer().setVisible(true);
+                // Initialize timer display to 15
+                viewGuiController.updateCorruptionTimer(15);
+            }
+        }
     }
     
     /**
@@ -205,23 +236,44 @@ public class GameController implements InputEventListener {
 
     @Override
     public DownData onDownEvent(MoveEvent event) {
+        // CRITICAL: Check if drill is active BEFORE calling moveBrickDown
+        // If drill just finished (returned false), it already spawned a new brick
+        boolean wasDrill = ((SimpleBoard) board).isDrillActive();
+        
         boolean canMove = board.moveBrickDown();
         ClearRow clearRow;
 
         if (!canMove) {
-            // Hit bottom - start lock delay timer if not already running
-            if (lockTimer.getStatus() != Animation.Status.RUNNING) {
-                lockTimer.play();
-                ((SimpleBoard) board).setLocking(true);
+            // Check if this was a drill finishing (not a collision)
+            if (wasDrill) {
+                // Drill finished - it already spawned a new brick in moveDrillDown()
+                // Refresh background to show any blocks that were destroyed
+                viewGuiController.refreshGameBackground(board.getBoardMatrix());
+                // Apply gravity animation to make floating blocks fall down
+                startGravityAnimation();
+                // Do NOT start lock timer or merge - the drill just vanished
+                clearRow = null;
+            } else {
+                // Normal brick hit bottom - start lock delay timer if not already running
+                if (lockTimer.getStatus() != Animation.Status.RUNNING) {
+                    lockTimer.play();
+                    ((SimpleBoard) board).setLocking(true);
+                }
+                // Do NOT call lockPieceAndHandleNewBrick() immediately - wait for timer
+                clearRow = null;
             }
-            // Do NOT call lockPieceAndHandleNewBrick() immediately - wait for timer
-            clearRow = null;
         } else {
             // Piece moved successfully - stop timer and reset locking state
             lockTimer.stop();
             ((SimpleBoard) board).setLocking(false);
             rewardManualDrop(event);
             clearRow = null;
+            
+            // CRITICAL: If drill is still active, refresh background immediately
+            // This ensures destroyed blocks disappear right away, not after the drill finishes
+            if (((SimpleBoard) board).isDrillActive()) {
+                viewGuiController.refreshGameBackground(board.getBoardMatrix());
+            }
         }
 
         return new DownData(clearRow, board.getViewData());
@@ -245,6 +297,12 @@ public class GameController implements InputEventListener {
             // Move was successful - stop timer and reset locking state
             lockTimer.stop();
             ((SimpleBoard) board).setLocking(false);
+            
+            // CRITICAL: If drill is active, refresh background immediately
+            // This ensures destroyed blocks disappear right away when drill moves horizontally
+            if (((SimpleBoard) board).isDrillActive()) {
+                viewGuiController.refreshGameBackground(board.getBoardMatrix());
+            }
         }
         return board.getViewData();
     }
@@ -266,6 +324,12 @@ public class GameController implements InputEventListener {
             // Move was successful - stop timer and reset locking state
             lockTimer.stop();
             ((SimpleBoard) board).setLocking(false);
+            
+            // CRITICAL: If drill is active, refresh background immediately
+            // This ensures destroyed blocks disappear right away when drill moves horizontally
+            if (((SimpleBoard) board).isDrillActive()) {
+                viewGuiController.refreshGameBackground(board.getBoardMatrix());
+            }
         }
         return board.getViewData();
     }
@@ -310,6 +374,8 @@ public class GameController implements InputEventListener {
             board.getScore().add(hardDropScore);
             // Check if player beat their own high score after score update
             checkPersonalHighScore();
+            // Check for power-up earning
+            checkPowerUpEarning();
         }
         
         // Play hard drop landing sound effect
@@ -334,11 +400,124 @@ public class GameController implements InputEventListener {
         // Reset notification flag for new game
         hasShownPersonalHighScoreNotification = false;
         
+        // Reset power-up threshold for new game
+        nextPowerUpThreshold = 100;
+        
+        // Reset corruption countdown
+        corruptionCountdown = 15;
+        
+        // Stop existing corruption loop if running
+        if (corruptionLoop != null) {
+            corruptionLoop.stop();
+        }
+        
+        // Stop existing gravity animation if running
+        if (gravityTimeline != null && gravityTimeline.getStatus() == Animation.Status.RUNNING) {
+            gravityTimeline.stop();
+            gravityTimeline = null;
+        }
+        
+        // Initialize corruption loop for POWERUPS mode
+        if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
+            initializeCorruptionLoop();
+            corruptionLoop.play();
+            // Show corruption timer UI
+            if (viewGuiController != null && viewGuiController.getCorruptionTimerContainer() != null) {
+                viewGuiController.getCorruptionTimerContainer().setVisible(true);
+            }
+        } else {
+            // Hide corruption timer UI in other modes
+            if (viewGuiController != null && viewGuiController.getCorruptionTimerContainer() != null) {
+                viewGuiController.getCorruptionTimerContainer().setVisible(false);
+            }
+        }
+        
         // Reload player's previous best score (in case leaderboard was updated)
         loadPlayerPreviousBestScore();
         
         board.newGame();
+        // For POWERUPS mode, start at level 5 for faster pace
+        if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
+            board.getScore().levelProperty().set(5);
+        }
         viewGuiController.refreshGameBackground(board.getBoardMatrix());
+    }
+    
+    /**
+     * Pauses the corruption loop timeline.
+     */
+    public void pauseCorruptionLoop() {
+        if (corruptionLoop != null && corruptionLoop.getStatus() == Animation.Status.RUNNING) {
+            corruptionLoop.pause();
+        }
+    }
+    
+    /**
+     * Resumes the corruption loop timeline.
+     */
+    public void resumeCorruptionLoop() {
+        if (corruptionLoop != null && corruptionLoop.getStatus() == Animation.Status.PAUSED) {
+            corruptionLoop.play();
+        }
+    }
+    
+    /**
+     * Initializes the corruption loop timeline for Bedrock Corruption mechanic.
+     * This runs every 15 seconds in POWERUPS mode, corrupting the lowest playable row.
+     */
+    private void initializeCorruptionLoop() {
+        // Reset countdown to 15
+        corruptionCountdown = 15;
+        
+        // Initialize timer display
+        if (viewGuiController != null) {
+            viewGuiController.updateCorruptionTimer(corruptionCountdown);
+        }
+        
+        corruptionLoop = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            // Decrement countdown
+            corruptionCountdown--;
+            
+            // Update UI
+            if (viewGuiController != null) {
+                viewGuiController.updateCorruptionTimer(corruptionCountdown);
+            }
+            
+            // If countdown reaches 0, corrupt next row
+            if (corruptionCountdown <= 0) {
+                // Reset countdown
+                corruptionCountdown = 15;
+                
+                // Corrupt next row
+                boolean success = ((SimpleBoard) board).corruptNextRow();
+                
+                // Show bedrock corruption notification
+                if (viewGuiController != null && success) {
+                    viewGuiController.showBedrockCorruptionNotification();
+                }
+                
+                // Refresh board view to show bedrock
+                if (viewGuiController != null) {
+                    viewGuiController.refreshGameBackground(board.getBoardMatrix());
+                }
+                
+                // If corruption failed (game over), trigger game over
+                if (!success) {
+                    // Game over - corruption reached the top
+                    // Find where game over is handled
+                    if (viewGuiController != null) {
+                        viewGuiController.gameOver();
+                    }
+                    // Stop corruption loop
+                    if (corruptionLoop != null) {
+                        corruptionLoop.stop();
+                    }
+                }
+            }
+        }));
+        
+        // Set to repeat indefinitely
+        corruptionLoop.setCycleCount(Timeline.INDEFINITE);
     }
     
     /**
@@ -444,6 +623,39 @@ public class GameController implements InputEventListener {
             board.getScore().add(clearRow.getScoreBonus());
             // Check if player beat their own high score after score update
             checkPersonalHighScore();
+            // Check for power-up earning
+            checkPowerUpEarning();
+        }
+    }
+    
+    /**
+     * Checks if the player has earned a power-up based on score threshold.
+     * CRITICAL: Only works in POWERUPS mode.
+     */
+    private void checkPowerUpEarning() {
+        // Only award power-ups in POWERUPS mode
+        if (currentMode != GameMode.POWERUPS) {
+            return;
+        }
+        
+        int currentScore = board.getScore().scoreProperty().get();
+        
+        if (currentScore >= nextPowerUpThreshold) {
+            // Pick a random PowerUp type (BOMB, DRILL, or FREEZE)
+            PowerUp[] powerUps = {PowerUp.BOMB, PowerUp.DRILL, PowerUp.FREEZE};
+            PowerUp randomPowerUp = powerUps[(int) (Math.random() * powerUps.length)];
+            
+            // Add to inventory
+            board.addPowerUp(randomPowerUp);
+            
+            // Increase threshold
+            nextPowerUpThreshold += 100;
+            
+            // Update Inventory UI
+            viewGuiController.refreshInventory(board.getInventory());
+            
+            // Show subtle notification that power-up was earned
+            viewGuiController.showPowerUpEarned(randomPowerUp);
         }
     }
 
@@ -510,6 +722,17 @@ public class GameController implements InputEventListener {
      * Handles game over logic: saves score if it qualifies for leaderboard.
      */
     private void handleGameOver() {
+        // Stop corruption loop if running
+        if (corruptionLoop != null) {
+            corruptionLoop.stop();
+        }
+        
+        // Stop gravity animation if running
+        if (gravityTimeline != null && gravityTimeline.getStatus() == Animation.Status.RUNNING) {
+            gravityTimeline.stop();
+            gravityTimeline = null;
+        }
+        
         int finalScore = board.getScore().scoreProperty().get();
         
         // Check if this score qualifies for the leaderboard
@@ -525,5 +748,207 @@ public class GameController implements InputEventListener {
         
         // Show game over panel
         viewGuiController.gameOver();
+    }
+    
+    @Override
+    public void onPowerUpEvent(int slotIndex) {
+        // CRITICAL: Only allow power-ups in POWERUPS mode
+        if (currentMode != GameMode.POWERUPS) {
+            return;
+        }
+        
+        // Call board.usePowerUp(slotIndex)
+        PowerUp item = board.usePowerUp(slotIndex);
+        
+        // If item is NONE, return
+        if (item == PowerUp.NONE) {
+            return;
+        }
+        
+        // Update UI
+        viewGuiController.refreshInventory(board.getInventory());
+        
+        // Switch Statement for effects
+        switch (item) {
+            case FREEZE:
+                activateFreeze();
+                break;
+            case BOMB:
+                enterBombTargetingMode();
+                break;
+            case DRILL:
+                activateDrill(); // Placeholder
+                break;
+            case NONE:
+            default:
+                break;
+        }
+    }
+    
+    /**
+     * Gets the board (for GUI access).
+     */
+    public Board getBoard() {
+        return board;
+    }
+    
+    /**
+     * Activates the FREEZE power-up effect.
+     * Pauses automatic falling for 8 seconds while allowing normal movement.
+     */
+    private void activateFreeze() {
+        // Freeze Active!
+        
+        // Show activation notification
+        viewGuiController.showPowerUpActivation(PowerUp.FREEZE);
+        
+        // Enable freeze visual effects
+        viewGuiController.setFreezeEffect(true);
+        
+        // Pause the automatic falling timeline
+        viewGuiController.pauseTimeline();
+        
+        // Create timer to resume timeline and disable effects after 8 seconds
+        Timeline freezeTimer = new Timeline(new KeyFrame(Duration.seconds(8), e -> {
+            viewGuiController.setFreezeEffect(false);
+            viewGuiController.resumeTimeline();
+        }));
+        freezeTimer.setCycleCount(1);
+        freezeTimer.play();
+    }
+    
+    /**
+     * Enters bomb targeting mode, allowing the player to click on the board to select a target.
+     */
+    private void enterBombTargetingMode() {
+        // Show activation notification
+        viewGuiController.showPowerUpActivation(PowerUp.BOMB);
+        
+        isBombTargeting = true;
+        viewGuiController.setGameCursor(Cursor.CROSSHAIR);
+        // Select Target
+    }
+    
+    /**
+     * Handles mouse click events when in bomb targeting mode.
+     * Converts pixel coordinates to grid coordinates and explodes blocks at that position.
+     * 
+     * @param event The mouse event containing click coordinates
+     */
+    public void handleMouseClick(MouseEvent event) {
+        if (!isBombTargeting) {
+            return;
+        }
+        
+        // Get click coordinates relative to gameBoard (BorderPane)
+        // The event coordinates are relative to the source node (gameBoard)
+        // gamePanel (GridPane) is in the center of gameBoard, so coordinates align directly
+        
+        // Block size is 20px (BRICK_SIZE) + 1px gap = 21px per cell
+        final int BLOCK_SIZE = 21;
+        
+        // Get the click position relative to gameBoard
+        // Since gamePanel fills the center of gameBoard and gameBoard is sized to match the board,
+        // the coordinates are directly usable for grid conversion
+        double clickX = event.getX();
+        double clickY = event.getY();
+        
+        // Convert pixel coordinates to grid coordinates
+        // Column (X): divide by block size
+        int col = (int) (clickX / BLOCK_SIZE);
+        
+        // Row (Y): divide by block size, but account for the 2 hidden rows at the top
+        // The visible board starts at row 2, so we add 2 to the calculated row
+        int row = (int) (clickY / BLOCK_SIZE) + 2;
+        
+        // Bounds check: ensure coordinates are within valid range
+        // Board dimensions: width=25 (rows), height=10 (columns)
+        // Matrix is [row][column] = [25][10]
+        // Valid rows: 2-24 (visible board), valid columns: 0-9
+        if (row >= 2 && row < board.getBoardMatrix().length && col >= 0 && col < board.getBoardMatrix()[0].length) {
+            // Explode at the target position (destroys blocks, but does NOT apply gravity)
+            board.explodeAt(row, col);
+            
+            // Play explosion animation (flash, debris, screen shake)
+            viewGuiController.playExplosionAnimation(row, col);
+            
+            // Optional: Play explosion sound effect
+            // soundManager.play("explosion.wav");
+            
+            // Exit targeting mode
+            isBombTargeting = false;
+            
+            // Reset cursor
+            viewGuiController.setGameCursor(Cursor.DEFAULT);
+            
+            // Refresh view to show destroyed blocks (before gravity animation)
+            viewGuiController.refreshGameBackground(board.getBoardMatrix());
+            
+            // Start gravity animation timeline (cascading "avalanche" effect)
+            startGravityAnimation();
+        } else {
+            // Click was outside the board - exit targeting mode without exploding
+            isBombTargeting = false;
+            viewGuiController.setGameCursor(Cursor.DEFAULT);
+        }
+    }
+    
+    /**
+     * Starts the gravity animation timeline that makes blocks fall row-by-row.
+     * Creates a cascading "avalanche" effect where blocks fall one step at a time.
+     */
+    private void startGravityAnimation() {
+        // Stop any existing gravity timeline to prevent stacking
+        if (gravityTimeline != null && gravityTimeline.getStatus() == Animation.Status.RUNNING) {
+            gravityTimeline.stop();
+        }
+        
+        // Create a timeline that runs every 100ms (reduced frequency for better performance)
+        gravityTimeline = new Timeline(new KeyFrame(Duration.millis(100), e -> {
+            // Apply one step of gravity (moves floating blocks down by one row)
+            ((SimpleBoard) board).applyGravityStep();
+            
+            // Refresh view to show the movement
+            viewGuiController.refreshGameBackground(board.getBoardMatrix());
+            
+            // Check if there are still floating blocks
+            if (!((SimpleBoard) board).hasFloatingBlocks()) {
+                // No more floating blocks - stop the timeline
+                gravityTimeline.stop();
+                gravityTimeline = null;
+            }
+        }));
+        
+        // Set the timeline to repeat indefinitely until stopped
+        gravityTimeline.setCycleCount(Timeline.INDEFINITE);
+        
+        // Start the animation
+        gravityTimeline.play();
+    }
+    
+    /**
+     * Activates the DRILL power-up effect.
+     * Replaces the current falling brick with a drill projectile that destroys blocks as it falls.
+     */
+    private void activateDrill() {
+        // Drill activated!
+        
+        // Show activation notification
+        viewGuiController.showPowerUpActivation(PowerUp.DRILL);
+        
+        // Stop any lock timer
+        lockTimer.stop();
+        ((SimpleBoard) board).setLocking(false);
+        
+        // Spawn the drill - let the board handle the logic to ensure variables are synced
+        // Do not create a new DrillBrick manually here
+        ((SimpleBoard) board).spawnDrill();
+        
+        // Refresh the view to show the new drill brick
+        viewGuiController.refreshBrick(board.getViewData());
+        
+        // Ensure the game loop is running (start timeline if it was paused)
+        // The drill will fall automatically via the game loop
+        // The timeline should already be running, but ensure it continues
     }
 }

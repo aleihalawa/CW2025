@@ -114,18 +114,11 @@ public class MainMenuController implements Initializable {
             // Set up mode selection handler
             gameModeSelectionPanel.setOnModeSelected(selectedMode -> {
                 if (selectedMode != null) {
-                    if (selectedMode == com.comp2042.model.GameMode.CLASSIC || selectedMode == com.comp2042.model.GameMode.MIRROR) {
-                        // Classic and Mirror are available
-                        GameSettings.setSelectedGameMode(selectedMode);
-                        System.out.println("Game mode selected: " + selectedMode + " - Ready to play!");
-                        // Update high score display for the selected game mode
-                        loadHighScore();
-                    } else {
-                        // Powerups is still a placeholder - keep as Classic
-                        System.out.println("Game mode selected: " + selectedMode + " - This is a placeholder. Game will use Classic mode.");
-                        GameSettings.setSelectedGameMode(com.comp2042.model.GameMode.CLASSIC);
-                        loadHighScore();
-                    }
+                    // All game modes are now fully implemented
+                    GameSettings.setSelectedGameMode(selectedMode);
+                    System.out.println("Game mode selected: " + selectedMode + " - Ready to play!");
+                    // Update high score display for the selected game mode
+                    loadHighScore();
                 }
             });
             

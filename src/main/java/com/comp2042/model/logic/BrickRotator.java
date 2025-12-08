@@ -32,5 +32,12 @@ public class BrickRotator {
         currentShape = 0;
     }
 
+    /**
+     * Gets the current brick.
+     * @return The current brick instance
+     */
+    public Brick getBrick() {
+        return brick;
+    }
 
 }

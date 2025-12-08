@@ -22,20 +22,20 @@
         <!-- Left Panel: Score, Level, Lines -->
         <VBox spacing="15" alignment="TOP_CENTER" prefWidth="150">
             <VBox spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
-                <Label text="SCORE" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
-                <Label fx:id="scoreLabel" text="0" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
+                <Label text="SCORE" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif;"/>
+                <Label fx:id="scoreLabel" text="0" style="-fx-text-fill: #BA55D3; -fx-font-size: 24px; -fx-font-weight: bold; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif;"/>
             </VBox>
             <VBox spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
-                <Label text="LEVEL" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
-                <Label fx:id="levelLabel" text="1" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
+                <Label text="LEVEL" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif;"/>
+                <Label fx:id="levelLabel" text="1" style="-fx-text-fill: #BA55D3; -fx-font-size: 24px; -fx-font-weight: bold; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif;"/>
             </VBox>
             <VBox spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
-                <Label text="LINES" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
-                <Label fx:id="linesLabel" text="0" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
+                <Label text="LINES" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif;"/>
+                <Label fx:id="linesLabel" text="0" style="-fx-text-fill: #BA55D3; -fx-font-size: 24px; -fx-font-weight: bold; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif;"/>
             </VBox>
             <VBox fx:id="corruptionTimerContainer" spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #ff0000; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;" visible="false">
-                <Label text="DANGER" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold;"/>
-                <Label fx:id="corruptionTimerLabel" text="15" style="-fx-text-fill: #ffff00; -fx-font-size: 24px; -fx-font-weight: bold;" styleClass="scoreClass"/>
+                <Label text="DANGER" style="-fx-text-fill: #ffffff; -fx-font-size: 14px; -fx-font-weight: bold; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif;"/>
+                <Label fx:id="corruptionTimerLabel" text="15" style="-fx-text-fill: #BA55D3; -fx-font-size: 24px; -fx-font-weight: bold; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif;"/>
             </VBox>
         </VBox>
         
@@ -54,13 +54,13 @@
         <!-- Right Panel: NEXT Piece -->
         <VBox spacing="10" alignment="TOP_CENTER" prefWidth="150">
             <VBox spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;">
-                <Label text="NEXT" style="-fx-text-fill: #ffffff; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 0 0 10 0;"/>
+                <Label text="NEXT" style="-fx-text-fill: #ffffff; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 0 0 10 0; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif;"/>
                 <VBox fx:id="nextBrickPanel" alignment="CENTER" spacing="15">
                     <!-- Visual placeholder for next 3 bricks - will be populated later -->
                 </VBox>
             </VBox>
             <VBox fx:id="inventoryContainer" spacing="5" alignment="CENTER" style="-fx-background-color: rgba(0, 0, 0, 0.7); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-padding: 10;" visible="false">
-                <Label text="INVENTORY" style="-fx-text-fill: #ffffff; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 0 0 10 0;"/>
+                <Label text="INVENTORY" style="-fx-text-fill: #ffffff; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 0 0 10 0; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', sans-serif; -fx-wrap-text: true; -fx-text-alignment: center;"/>
                 <VBox fx:id="inventoryPanel" alignment="CENTER" spacing="10">
                     <!-- Inventory items will be populated here -->
                 </VBox>

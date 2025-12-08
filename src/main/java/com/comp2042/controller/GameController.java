@@ -45,6 +45,9 @@ public class GameController implements InputEventListener {
     private Timeline corruptionLoop;
     private int corruptionCountdown = 15;
     
+    // Gravity animation timeline (to prevent multiple from running)
+    private Timeline gravityTimeline;
+    
     /**
      * Sets the game mode.
      * Also updates ghost piece mirror mode.
@@ -408,6 +411,12 @@ public class GameController implements InputEventListener {
             corruptionLoop.stop();
         }
         
+        // Stop existing gravity animation if running
+        if (gravityTimeline != null && gravityTimeline.getStatus() == Animation.Status.RUNNING) {
+            gravityTimeline.stop();
+            gravityTimeline = null;
+        }
+        
         // Initialize corruption loop for POWERUPS mode
         if (GameSettings.getSelectedGameMode() == GameMode.POWERUPS) {
             initializeCorruptionLoop();
@@ -713,6 +722,12 @@ public class GameController implements InputEventListener {
             corruptionLoop.stop();
         }
         
+        // Stop gravity animation if running
+        if (gravityTimeline != null && gravityTimeline.getStatus() == Animation.Status.RUNNING) {
+            gravityTimeline.stop();
+            gravityTimeline = null;
+        }
+        
         int finalScore = board.getScore().scoreProperty().get();
         
         // Check if this score qualifies for the leaderboard
@@ -777,7 +792,7 @@ public class GameController implements InputEventListener {
      * Pauses automatic falling for 8 seconds while allowing normal movement.
      */
     private void activateFreeze() {
-        System.out.println("Freeze Active!");
+        // Freeze Active!
         
         // Show activation notification
         viewGuiController.showPowerUpActivation(PowerUp.FREEZE);
@@ -806,7 +821,7 @@ public class GameController implements InputEventListener {
         
         isBombTargeting = true;
         viewGuiController.setGameCursor(Cursor.CROSSHAIR);
-        System.out.println("Select Target");
+        // Select Target
     }
     
     /**
@@ -878,10 +893,13 @@ public class GameController implements InputEventListener {
      * Creates a cascading "avalanche" effect where blocks fall one step at a time.
      */
     private void startGravityAnimation() {
-        // Create a timeline that runs every 50ms
-        // Use a final array to hold the timeline reference so it can be accessed in the lambda
-        final Timeline[] gravityTimelineRef = new Timeline[1];
-        gravityTimelineRef[0] = new Timeline(new KeyFrame(Duration.millis(50), e -> {
+        // Stop any existing gravity timeline to prevent stacking
+        if (gravityTimeline != null && gravityTimeline.getStatus() == Animation.Status.RUNNING) {
+            gravityTimeline.stop();
+        }
+        
+        // Create a timeline that runs every 100ms (reduced frequency for better performance)
+        gravityTimeline = new Timeline(new KeyFrame(Duration.millis(100), e -> {
             // Apply one step of gravity (moves floating blocks down by one row)
             ((SimpleBoard) board).applyGravityStep();
             
@@ -891,15 +909,16 @@ public class GameController implements InputEventListener {
             // Check if there are still floating blocks
             if (!((SimpleBoard) board).hasFloatingBlocks()) {
                 // No more floating blocks - stop the timeline
-                gravityTimelineRef[0].stop();
+                gravityTimeline.stop();
+                gravityTimeline = null;
             }
         }));
         
         // Set the timeline to repeat indefinitely until stopped
-        gravityTimelineRef[0].setCycleCount(Timeline.INDEFINITE);
+        gravityTimeline.setCycleCount(Timeline.INDEFINITE);
         
         // Start the animation
-        gravityTimelineRef[0].play();
+        gravityTimeline.play();
     }
     
     /**
@@ -907,7 +926,7 @@ public class GameController implements InputEventListener {
      * Replaces the current falling brick with a drill projectile that destroys blocks as it falls.
      */
     private void activateDrill() {
-        System.out.println("Drill activated!");
+        // Drill activated!
         
         // Show activation notification
         viewGuiController.showPowerUpActivation(PowerUp.DRILL);

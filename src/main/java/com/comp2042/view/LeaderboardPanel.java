@@ -65,7 +65,7 @@ public class LeaderboardPanel extends Pane {
         
         classicButton = createModeButton("CLASSIC", GameMode.CLASSIC);
         mirrorButton = createModeButton("MIRROR", GameMode.MIRROR);
-        powerupsButton = createModeButton("ARCADE", GameMode.POWERUPS);
+        powerupsButton = createModeButton("POWER UPS", GameMode.POWERUPS);
         
         // Set CLASSIC as initially selected
         updateButtonStyles(GameMode.CLASSIC);

@@ -1482,17 +1482,29 @@ public class GuiController implements Initializable {
         
         // Loop through the inventory list
         for (com.comp2042.model.PowerUp item : inventory) {
+            ImageView powerUpImage = null;
+            String imageFileName = null;
+            
+            // Determine which image to use based on power-up type
             if (item == com.comp2042.model.PowerUp.FREEZE) {
-                // Use snowflake image for FREEZE power-up
+                imageFileName = "snowflake logo.png";
+            } else if (item == com.comp2042.model.PowerUp.BOMB) {
+                imageFileName = "bomb logo.png";
+            } else if (item == com.comp2042.model.PowerUp.DRILL) {
+                imageFileName = "drill logo.png";
+            }
+            
+            // Try to load image if we have a filename
+            if (imageFileName != null) {
                 try {
-                    URL snowflakeUrl = getClass().getClassLoader().getResource("snowflake logo.png");
-                    if (snowflakeUrl != null) {
-                        ImageView snowflakeImage = new ImageView(new Image(snowflakeUrl.toExternalForm()));
-                        snowflakeImage.setFitWidth(20);
-                        snowflakeImage.setFitHeight(20);
-                        snowflakeImage.setPreserveRatio(true);
-                        snowflakeImage.setSmooth(true);
-                        inventoryPanel.getChildren().add(snowflakeImage);
+                    URL imageUrl = getClass().getClassLoader().getResource(imageFileName);
+                    if (imageUrl != null) {
+                        powerUpImage = new ImageView(new Image(imageUrl.toExternalForm()));
+                        powerUpImage.setFitWidth(20);
+                        powerUpImage.setFitHeight(20);
+                        powerUpImage.setPreserveRatio(true);
+                        powerUpImage.setSmooth(true);
+                        inventoryPanel.getChildren().add(powerUpImage);
                     } else {
                         // Fallback to rectangle if image not found
                         Rectangle rect = new Rectangle(20, 20);
@@ -1583,31 +1595,38 @@ public class GuiController implements Initializable {
     }
 
     public void refreshGameBackground(int[][] board) {
-        // DETECT DESTROYED BLOCKS: Compare with previous board state
+        // DETECT DESTROYED BLOCKS: Compare with previous board state (only when drill is active)
+        // Optimized: Only check when drill is active and limit comparison scope
         if (previousBoardMatrix != null && isDrillActive) {
-            // Check for blocks that were destroyed (existed before, now empty)
-            for (int i = 2; i < board.length && i < previousBoardMatrix.length; i++) {
-                for (int j = 0; j < board[i].length && j < previousBoardMatrix[i].length; j++) {
+            // Only check visible rows (2 to 24) to reduce comparison overhead
+            int maxRows = Math.min(board.length, previousBoardMatrix.length);
+            for (int i = 2; i < maxRows; i++) {
+                int maxCols = Math.min(board[i].length, previousBoardMatrix[i].length);
+                for (int j = 0; j < maxCols; j++) {
                     // Block was there before but is now gone - it was destroyed!
                     if (previousBoardMatrix[i][j] != 0 && board[i][j] == 0) {
-                        // Animate block destruction with debris
-                        System.out.println("BLOCK DESTROYED at row=" + i + ", col=" + j + ", color=" + previousBoardMatrix[i][j]);
-                        animateBlockDestruction(i, j, previousBoardMatrix[i][j]);
+                        // Animate block destruction with debris (only if not too many animations running)
+                        if (drillParticles.size() < 30) { // Reduced limit for better performance
+                            animateBlockDestruction(i, j, previousBoardMatrix[i][j]);
+                        }
                     }
                 }
             }
         }
         
-        // Store current board state for next comparison
-        if (previousBoardMatrix == null || previousBoardMatrix.length != board.length || 
-            (board.length > 0 && previousBoardMatrix[0].length != board[0].length)) {
-            previousBoardMatrix = new int[board.length][];
-            for (int i = 0; i < board.length; i++) {
-                previousBoardMatrix[i] = new int[board[i].length];
+        // Store current board state for next comparison (only when drill is active)
+        if (isDrillActive) {
+            if (previousBoardMatrix == null || previousBoardMatrix.length != board.length || 
+                (board.length > 0 && previousBoardMatrix[0].length != board[0].length)) {
+                previousBoardMatrix = new int[board.length][];
+                for (int i = 0; i < board.length; i++) {
+                    previousBoardMatrix[i] = new int[board[i].length];
+                }
             }
-        }
-        for (int i = 0; i < board.length; i++) {
-            System.arraycopy(board[i], 0, previousBoardMatrix[i], 0, board[i].length);
+            // Only copy visible rows to reduce overhead
+            for (int i = 2; i < board.length; i++) {
+                System.arraycopy(board[i], 0, previousBoardMatrix[i], 0, board[i].length);
+            }
         }
         
         // Only update visible rows (2 to 24, skipping top 2 hidden rows)
@@ -2069,7 +2088,7 @@ public class GuiController implements Initializable {
                 }
             }
             
-            System.out.println("Game paused");
+            // Game paused
         } else {
             isPause.setValue(Boolean.FALSE);
             if (timeLine != null) {
@@ -2086,7 +2105,7 @@ public class GuiController implements Initializable {
                 pauseMenuGroup.setVisible(false);
             }
             
-            System.out.println("Game resumed");
+            // Game resumed
         }
         gamePanel.requestFocus();
     }
@@ -2769,10 +2788,8 @@ public class GuiController implements Initializable {
      * @param blockColor The color ID of the destroyed block
      */
     private void animateBlockDestruction(int row, int col, int blockColor) {
-        System.out.println("animateBlockDestruction called: row=" + row + ", col=" + col + ", color=" + blockColor);
         // Calculate screen position of the destroyed block using cached coordinates
         if (!coordinatesCached || gamePanel == null || gameBoard == null) {
-            System.out.println("Skipping destruction animation - coordinates not cached or panels null");
             return;
         }
         
@@ -2785,8 +2802,8 @@ public class GuiController implements Initializable {
         Paint blockPaint = getFillColor(blockColor);
         Color debrisColor = blockPaint instanceof Color ? (Color) blockPaint : Color.GREY;
         
-        // INTENSE DESTRUCTION: Spawn 12-16 debris particles (more visible)
-        int particleCount = 12 + (int)(Math.random() * 5);
+        // Reduced particle count for better performance
+        int particleCount = 6 + (int)(Math.random() * 3); // 6-8 particles instead of 12-16
         
         // Use gameBoard as the container (it's visible and properly positioned)
         for (int i = 0; i < particleCount; i++) {

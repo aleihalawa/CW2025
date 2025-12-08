@@ -27,8 +27,10 @@ public class SimpleBoard implements Board {
     private boolean isLocking = false;
     private final List<PowerUp> inventory = new ArrayList<>();
     
-    // Bedrock Corruption constants
+    // Block type constants
     public static final int BEDROCK_ID = 9;
+    public static final int DRILL_ID = 11;
+    
     private int currentCorruptionRow = 24; // Initialize to bottom row (width - 1, since width=25, rows are 0-24)
 
     public SimpleBoard(int width, int height) {

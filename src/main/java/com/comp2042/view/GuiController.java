@@ -436,8 +436,8 @@ public class GuiController implements Initializable {
             for (int j = 0; j < brickData[i].length; j++) {
                 Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
                 int val = brickData[i][j];
-                // Check if this is a drill (ID 11) and use texture
-                if (val == 11 && drillTexture != null) {
+                // Check if this is a drill and use texture
+                if (val == com.comp2042.model.SimpleBoard.DRILL_ID && drillTexture != null) {
                     // Scale image to match brick size (20x20)
                     rectangle.setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
                 } else {
@@ -1018,7 +1018,7 @@ public class GuiController implements Initializable {
                 returnPaint = Color.web("#FF8C00"); // Dark Orange - vibrant orange
                 break;
             case 9:
-                returnPaint = Color.web("#2F2F2F"); // Dark Gray - Bedrock (slightly lighter for visibility)
+                returnPaint = Color.web("#2F2F2F"); // Dark Gray - Bedrock (use SimpleBoard.BEDROCK_ID constant)
                 break;
             default:
                 returnPaint = Color.web("#FF00FF"); // Magenta - fallback neon color
@@ -1232,7 +1232,7 @@ public class GuiController implements Initializable {
             double drillScreenY = 0;
             for (int i = 0; i < brickData.length && !drillFound; i++) {
                 for (int j = 0; j < brickData[i].length && !drillFound; j++) {
-                    if (brickData[i][j] == 11 && i < rectangles.length && j < rectangles[i].length && rectangles[i][j] != null) {
+                    if (brickData[i][j] == com.comp2042.model.SimpleBoard.DRILL_ID && i < rectangles.length && j < rectangles[i].length && rectangles[i][j] != null) {
                         drillFound = true;
                         // Calculate drill screen position for particles
                         if (coordinatesCached) {
@@ -1286,7 +1286,7 @@ public class GuiController implements Initializable {
                             
                             if (val != 0) {
                                 // Check if this is a drill (ID 11) and use texture
-                                if (val == 11 && drillTexture != null) {
+                                if (val == com.comp2042.model.SimpleBoard.DRILL_ID && drillTexture != null) {
                                     // Scale image to match brick size (20x20)
                                     rectangles[i][j].setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
                                     
@@ -1675,14 +1675,14 @@ public class GuiController implements Initializable {
     }
 
     private void setRectangleData(int color, Rectangle rectangle) {
-        // Check if this is bedrock (ID 9) - special handling
-        if (color == 9) {
+        // Check if this is bedrock - special handling (use SimpleBoard.BEDROCK_ID constant)
+        if (color == com.comp2042.model.SimpleBoard.BEDROCK_ID) {
             rectangle.setFill(Color.web("#2F2F2F")); // Dark gray matching new palette
             rectangle.setStroke(Color.web("#1A1A1A")); // Darker border
             rectangle.setStrokeWidth(2.0);
             rectangle.setStrokeType(StrokeType.INSIDE);
-        } else if (color == 11 && drillTexture != null) {
-            // Check if this is a drill (ID 11) and use texture
+        } else if (color == com.comp2042.model.SimpleBoard.DRILL_ID && drillTexture != null) {
+            // Check if this is a drill and use texture
             // Scale image to match brick size (20x20)
             rectangle.setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
             rectangle.setStroke(null); // No stroke for drill
@@ -1755,7 +1755,7 @@ public class GuiController implements Initializable {
                                 int val = nextBrickData[row][col];
                                 if (val > 0) {
                                     // Check if this is a drill (ID 11) and use texture
-                                    if (val == 11 && drillTexture != null) {
+                                    if (val == com.comp2042.model.SimpleBoard.DRILL_ID && drillTexture != null) {
                                         // Scale image to match brick size (20x20)
                                         grid[row][col].setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
                                     } else {

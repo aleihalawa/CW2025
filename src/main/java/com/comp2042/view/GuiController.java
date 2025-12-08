@@ -616,6 +616,174 @@ public class GuiController implements Initializable {
             gameBoard.setCursor(cursor);
         }
     }
+    
+    /**
+     * Plays an explosion animation at the specified grid position.
+     * Includes flash, debris particles, and screen shake effects.
+     * 
+     * @param row The grid row (0-24, where 2-24 are visible)
+     * @param col The grid column (0-9)
+     */
+    public void playExplosionAnimation(int row, int col) {
+        if (gameBoard == null || gamePanel == null) {
+            return;
+        }
+        
+        // Convert grid coordinates to pixel coordinates (center of the 3x3 explosion area)
+        // Block size is 21px (BRICK_SIZE + 1)
+        final int BLOCK_SIZE = 21;
+        // Calculate center of the target cell relative to gamePanel
+        double centerX = col * BLOCK_SIZE + (BLOCK_SIZE / 2.0);
+        double centerY = (row - 2) * BLOCK_SIZE + (BLOCK_SIZE / 2.0); // Account for 2 hidden rows
+        
+        // Use scene root to add particles (persists during board refreshes and is always visible)
+        // Get the scene root (StackPane) which is always visible
+        javafx.scene.Parent root = gamePanel.getScene() != null ? 
+            gamePanel.getScene().getRoot() : null;
+        if (root == null) {
+            return;
+        }
+        
+        final Pane particleContainer;
+        // Prefer StackPane root, fallback to frostOverlay if root is not a Pane
+        if (root instanceof StackPane) {
+            particleContainer = (StackPane) root;
+        } else if (root instanceof Pane) {
+            particleContainer = (Pane) root;
+        } else if (frostOverlay != null) {
+            // Fallback to frostOverlay, but make it visible
+            frostOverlay.setVisible(true);
+            particleContainer = frostOverlay;
+        } else {
+            return; // Cannot add particles
+        }
+        
+        // Convert gamePanel coordinates to scene root coordinates
+        // Scene root (StackPane) covers the entire screen (650x600), so we need scene coordinates
+        javafx.geometry.Point2D scenePoint = gamePanel.localToScene(centerX, centerY);
+        javafx.geometry.Point2D rootPoint = particleContainer.sceneToLocal(scenePoint);
+        final double x;
+        final double y;
+        
+        // If conversion fails (NaN), use direct scene coordinates as fallback
+        if (Double.isNaN(rootPoint.getX()) || Double.isNaN(rootPoint.getY())) {
+            x = scenePoint.getX();
+            y = scenePoint.getY();
+        } else {
+            x = rootPoint.getX();
+            y = rootPoint.getY();
+        }
+        
+        // LAYER 1: The Flash
+        Circle flash = new Circle(50, Color.WHITE);
+        flash.setOpacity(0.8);
+        flash.setLayoutX(x);
+        flash.setLayoutY(y);
+        flash.setManaged(false);
+        
+        // Add flash to particle container (frostOverlay)
+        particleContainer.getChildren().add(flash);
+        flash.toFront();
+        
+        // Flash animation: scale from 0 to 3.0 and fade from 0.8 to 0
+        ScaleTransition scaleFlash = new ScaleTransition(Duration.millis(300), flash);
+        scaleFlash.setFromX(0);
+        scaleFlash.setFromY(0);
+        scaleFlash.setToX(3.0);
+        scaleFlash.setToY(3.0);
+        scaleFlash.setByX(1.5);
+        scaleFlash.setByY(1.5);
+        
+        FadeTransition fadeFlash = new FadeTransition(Duration.millis(300), flash);
+        fadeFlash.setFromValue(0.8);
+        fadeFlash.setToValue(0.0);
+        
+        ParallelTransition flashAnimation = new ParallelTransition(scaleFlash, fadeFlash);
+            flashAnimation.setOnFinished(e -> {
+                if (flash.getParent() != null && flash.getParent() == particleContainer) {
+                    particleContainer.getChildren().remove(flash);
+                }
+            });
+        flashAnimation.play();
+        
+        // LAYER 2: The Debris (20 particles)
+        Color[] debrisColors = {Color.RED, Color.ORANGE, Color.YELLOW, Color.DARKRED};
+        List<Rectangle> debrisParticles = new ArrayList<>();
+        
+        for (int i = 0; i < 20; i++) {
+            // Create debris particle (5x5)
+            Rectangle particle = new Rectangle(5, 5);
+            
+            // Random color from debrisColors
+            Color particleColor = debrisColors[(int)(Math.random() * debrisColors.length)];
+            particle.setFill(particleColor);
+            
+            // Set initial position at explosion center with small random offset
+            double offsetX = (Math.random() - 0.5) * 10; // -5 to +5
+            double offsetY = (Math.random() - 0.5) * 10;
+            particle.setLayoutX(x + offsetX);
+            particle.setLayoutY(y + offsetY);
+            particle.setManaged(false);
+            
+            // Random velocity vector (flying outward from center)
+            double angle = Math.random() * Math.PI * 2; // Random direction (0 to 2π)
+            double speed = 2 + Math.random() * 4; // 2-6 pixels per frame
+            double deltaX = Math.cos(angle) * speed;
+            double deltaY = Math.sin(angle) * speed;
+            
+            // Add to particle container (frostOverlay)
+            particleContainer.getChildren().add(particle);
+            particle.toFront();
+            debrisParticles.add(particle);
+            
+            // Create translate transition for movement
+            TranslateTransition moveParticle = new TranslateTransition(Duration.millis(600), particle);
+            moveParticle.setByX(deltaX * 10); // Multiply by frame count approximation
+            moveParticle.setByY(deltaY * 10);
+            
+            // Fade out over 600ms
+            FadeTransition fadeParticle = new FadeTransition(Duration.millis(600), particle);
+            fadeParticle.setFromValue(1.0);
+            fadeParticle.setToValue(0.0);
+            
+            // Play both animations in parallel
+            ParallelTransition particleAnimation = new ParallelTransition(moveParticle, fadeParticle);
+            particleAnimation.setOnFinished(e -> {
+                debrisParticles.remove(particle);
+                if (particle.getParent() != null && particle.getParent() == particleContainer) {
+                    particleContainer.getChildren().remove(particle);
+                }
+            });
+            particleAnimation.play();
+        }
+        
+        // LAYER 3: The Screen Shake
+        Timeline shakeTimeline = new Timeline();
+        shakeTimeline.setCycleCount(4); // 4 keyframes over 200ms (50ms each)
+        
+        // Create keyframes that shake the board
+        for (int i = 0; i < 4; i++) {
+            KeyFrame shakeFrame = new KeyFrame(
+                Duration.millis(i * 50), // 0, 50, 100, 150ms
+                e -> {
+                    if (gameBoard != null) {
+                        gameBoard.setTranslateX((Math.random() - 0.5) * 10);
+                        gameBoard.setTranslateY((Math.random() - 0.5) * 10);
+                    }
+                }
+            );
+            shakeTimeline.getKeyFrames().add(shakeFrame);
+        }
+        
+        // Reset position at the end
+        shakeTimeline.setOnFinished(e -> {
+            if (gameBoard != null) {
+                gameBoard.setTranslateX(0);
+                gameBoard.setTranslateY(0);
+            }
+        });
+        shakeTimeline.play();
+    }
 
     private Paint getFillColor(int i) {
         Paint returnPaint;

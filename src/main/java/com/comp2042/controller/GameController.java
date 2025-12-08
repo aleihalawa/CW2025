@@ -711,8 +711,14 @@ public class GameController implements InputEventListener {
         // Matrix is [row][column] = [25][10]
         // Valid rows: 2-24 (visible board), valid columns: 0-9
         if (row >= 2 && row < board.getBoardMatrix().length && col >= 0 && col < board.getBoardMatrix()[0].length) {
-            // Explode at the target position
+            // Explode at the target position (destroys blocks, but does NOT apply gravity)
             board.explodeAt(row, col);
+            
+            // Play explosion animation (flash, debris, screen shake)
+            viewGuiController.playExplosionAnimation(row, col);
+            
+            // Optional: Play explosion sound effect
+            // soundManager.play("explosion.wav");
             
             // Exit targeting mode
             isBombTargeting = false;
@@ -720,13 +726,45 @@ public class GameController implements InputEventListener {
             // Reset cursor
             viewGuiController.setGameCursor(Cursor.DEFAULT);
             
-            // Refresh view to show destroyed blocks
+            // Refresh view to show destroyed blocks (before gravity animation)
             viewGuiController.refreshGameBackground(board.getBoardMatrix());
+            
+            // Start gravity animation timeline (cascading "avalanche" effect)
+            startGravityAnimation();
         } else {
             // Click was outside the board - exit targeting mode without exploding
             isBombTargeting = false;
             viewGuiController.setGameCursor(Cursor.DEFAULT);
         }
+    }
+    
+    /**
+     * Starts the gravity animation timeline that makes blocks fall row-by-row.
+     * Creates a cascading "avalanche" effect where blocks fall one step at a time.
+     */
+    private void startGravityAnimation() {
+        // Create a timeline that runs every 50ms
+        // Use a final array to hold the timeline reference so it can be accessed in the lambda
+        final Timeline[] gravityTimelineRef = new Timeline[1];
+        gravityTimelineRef[0] = new Timeline(new KeyFrame(Duration.millis(50), e -> {
+            // Apply one step of gravity (moves floating blocks down by one row)
+            ((SimpleBoard) board).applyGravityStep();
+            
+            // Refresh view to show the movement
+            viewGuiController.refreshGameBackground(board.getBoardMatrix());
+            
+            // Check if there are still floating blocks
+            if (!((SimpleBoard) board).hasFloatingBlocks()) {
+                // No more floating blocks - stop the timeline
+                gravityTimelineRef[0].stop();
+            }
+        }));
+        
+        // Set the timeline to repeat indefinitely until stopped
+        gravityTimelineRef[0].setCycleCount(Timeline.INDEFINITE);
+        
+        // Start the animation
+        gravityTimelineRef[0].play();
     }
     
     /**

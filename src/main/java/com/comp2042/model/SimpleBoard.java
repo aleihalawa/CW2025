@@ -366,6 +366,7 @@ public class SimpleBoard implements Board {
     
     /**
      * Explodes blocks at the specified grid position, destroying blocks in a 3x3 radius.
+     * After destruction, applies gravity to make blocks above fall down.
      * 
      * @param row The row (Y coordinate) in the game matrix
      * @param col The column (X coordinate) in the game matrix
@@ -385,6 +386,46 @@ public class SimpleBoard implements Board {
                 if (targetRow >= 0 && targetRow < width && targetCol >= 0 && targetCol < height) {
                     // Destroy the block (set to 0)
                     currentGameMatrix[targetRow][targetCol] = 0;
+                }
+            }
+        }
+        
+        // Do NOT apply gravity here - let the controller handle it with animation
+    }
+    
+    /**
+     * Checks if there are any floating blocks (blocks with empty space below them).
+     * 
+     * @return true if any block has empty space (0) immediately beneath it and is not on the floor
+     */
+    public boolean hasFloatingBlocks() {
+        // Scan the board from bottom to top
+        // Matrix structure: currentGameMatrix[row][column] = currentGameMatrix[y][x]
+        for (int y = width - 2; y >= 0; y--) { // Start from second-to-bottom row (width-2) down to 0
+            for (int x = 0; x < height; x++) { // Check each column
+                // If there's a block at [y][x] and empty space below it [y+1][x]
+                if (currentGameMatrix[y][x] != 0 && currentGameMatrix[y + 1][x] == 0) {
+                    return true; // Found a floating block
+                }
+            }
+        }
+        return false; // No floating blocks
+    }
+    
+    /**
+     * Applies one step of gravity, moving floating blocks down by one row.
+     * This is called repeatedly to create a cascading "avalanche" effect.
+     */
+    public void applyGravityStep() {
+        // Scan the board from bottom to top (height-1 down to 0)
+        // Matrix structure: currentGameMatrix[row][column] = currentGameMatrix[y][x]
+        for (int y = width - 2; y >= 0; y--) { // Start from second-to-bottom row down to top
+            for (int x = 0; x < height; x++) { // Check each column
+                // If a block at [y][x] has empty space below it [y+1][x]
+                if (currentGameMatrix[y][x] != 0 && currentGameMatrix[y + 1][x] == 0) {
+                    // Move the block down one step
+                    currentGameMatrix[y + 1][x] = currentGameMatrix[y][x];
+                    currentGameMatrix[y][x] = 0;
                 }
             }
         }

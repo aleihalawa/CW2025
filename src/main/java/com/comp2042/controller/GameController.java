@@ -62,7 +62,7 @@ public class GameController implements InputEventListener {
     
     // Power-up earning threshold constants
     private static final int INITIAL_POWER_UP_THRESHOLD = 100;
-    private static final int POWER_UP_THRESHOLD_INCREMENT = 1500;
+    private static final int POWER_UP_THRESHOLD_INCREMENT = 100;
     private int nextPowerUpThreshold = INITIAL_POWER_UP_THRESHOLD;
     
     // Bomb targeting state
@@ -674,7 +674,9 @@ public class GameController implements InputEventListener {
         
         int currentScore = board.getScore().scoreProperty().get();
         
-        if (currentScore >= nextPowerUpThreshold) {
+        // Keep awarding power-ups until score is below threshold
+        // This handles cases where score jumps significantly (e.g., multiple line clears)
+        while (currentScore >= nextPowerUpThreshold) {
             // Pick a random PowerUp type (BOMB, DRILL, or FREEZE)
             PowerUp[] powerUps = {PowerUp.BOMB, PowerUp.DRILL, PowerUp.FREEZE};
             PowerUp randomPowerUp = powerUps[(int) (Math.random() * powerUps.length)];
@@ -682,11 +684,13 @@ public class GameController implements InputEventListener {
             // Add to inventory
             board.addPowerUp(randomPowerUp);
             
-            // Increase threshold
+            // Increase threshold for next power-up
             nextPowerUpThreshold += POWER_UP_THRESHOLD_INCREMENT;
             
-            // Update Inventory UI
-            viewGuiController.refreshInventory(board.getInventory());
+            // Update Inventory UI - only in POWERUPS mode
+            if (currentMode == GameMode.POWERUPS) {
+                viewGuiController.refreshInventory(board.getInventory());
+            }
             
             // Show subtle notification that power-up was earned
             viewGuiController.showPowerUpEarned(randomPowerUp);
@@ -798,8 +802,10 @@ public class GameController implements InputEventListener {
             return;
         }
         
-        // Update UI
-        viewGuiController.refreshInventory(board.getInventory());
+        // Update UI - only in POWERUPS mode
+        if (currentMode == GameMode.POWERUPS) {
+            viewGuiController.refreshInventory(board.getInventory());
+        }
         
         // Switch Statement for effects
         switch (item) {

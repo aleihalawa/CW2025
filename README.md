@@ -260,13 +260,13 @@ All required features have been successfully implemented and are working properl
   - Mode-specific initialization logic
 
 - **Score and Leaderboard Integration**: 
-  - `checkPowerUpEarning()`: Awards power-ups every 1500 points
+  - `checkPowerUpEarning()`: Awards power-ups every 100 points
   - `checkPersonalHighScore()`: Tracks personal best scores
   - `handleGameOver()`: Saves scores to appropriate leaderboards
 
 - **Constants Extraction**: Replaced magic numbers with named constants
   - `INITIAL_POWER_UP_THRESHOLD = 100`
-  - `POWER_UP_THRESHOLD_INCREMENT = 1500`
+  - `POWER_UP_THRESHOLD_INCREMENT = 100`
   - `CORRUPTION_INTERVAL_SECONDS = 15`
   - `BASE_SPEED_MS = 400.0`
   - `SPEED_DECREMENT_MS = 35.0`

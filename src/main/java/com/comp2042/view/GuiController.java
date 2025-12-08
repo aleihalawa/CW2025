@@ -31,14 +31,11 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.application.Platform;
 import javafx.stage.Stage;
-import javafx.scene.effect.BoxBlur;
-import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.Glow;
 import javafx.scene.effect.Reflection;
 import javafx.scene.Cursor;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -202,7 +199,6 @@ public class GuiController implements Initializable {
     private final List<Rectangle> activeParticles = new ArrayList<>();
     
     // Freeze effect system
-    private Timeline freezeParticleTimeline;
     private boolean isFrozen = false;
     private AnimationTimer snowStormTimer;
     private final java.util.List<Circle> snowParticles = new java.util.ArrayList<>();
@@ -214,7 +210,7 @@ public class GuiController implements Initializable {
     // Drill visual effects
     private double drillRotation = 0;
     private final java.util.List<Rectangle> drillParticles = new java.util.ArrayList<>();
-    private AnimationTimer drillParticleTimer;
+    private Timeline drillParticleTimer;
     private boolean isDrillActive = false;
     private int[][] previousBoardMatrix; // Track previous board state to detect destroyed blocks
 
@@ -415,10 +411,7 @@ public class GuiController implements Initializable {
             }
         }
         // Store board reference if available from eventListener
-        if (eventListener instanceof com.comp2042.controller.GameController) {
-            com.comp2042.controller.GameController gc = (com.comp2042.controller.GameController) eventListener;
-            // We'll need to get board from GameController - for now, we'll pass it differently
-        }
+        // Event listener is set via setEventListener method
         // Invalidate coordinate cache when initializing new game view
         coordinatesCached = false;
         
@@ -443,8 +436,8 @@ public class GuiController implements Initializable {
             for (int j = 0; j < brickData[i].length; j++) {
                 Rectangle rectangle = new Rectangle(BRICK_SIZE, BRICK_SIZE);
                 int val = brickData[i][j];
-                // Check if this is a drill (ID 11) and use texture
-                if (val == 11 && drillTexture != null) {
+                // Check if this is a drill and use texture
+                if (val == com.comp2042.model.SimpleBoard.DRILL_ID && drillTexture != null) {
                     // Scale image to match brick size (20x20)
                     rectangle.setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
                 } else {
@@ -1025,7 +1018,7 @@ public class GuiController implements Initializable {
                 returnPaint = Color.web("#FF8C00"); // Dark Orange - vibrant orange
                 break;
             case 9:
-                returnPaint = Color.web("#2F2F2F"); // Dark Gray - Bedrock (slightly lighter for visibility)
+                returnPaint = Color.web("#2F2F2F"); // Dark Gray - Bedrock (use SimpleBoard.BEDROCK_ID constant)
                 break;
             default:
                 returnPaint = Color.web("#FF00FF"); // Magenta - fallback neon color
@@ -1093,9 +1086,6 @@ public class GuiController implements Initializable {
      * @param i The block color ID
      * @return A frozen color variant
      */
-    private Paint getFrozenColor(int i) {
-        return getGlacierColor(i);
-    }
     
     private void createGridPattern(int width, int height) {
         // Create a Pane to hold grid lines
@@ -1240,12 +1230,10 @@ public class GuiController implements Initializable {
             boolean drillFound = false;
             double drillScreenX = 0;
             double drillScreenY = 0;
-            Rectangle drillRect = null;
             for (int i = 0; i < brickData.length && !drillFound; i++) {
                 for (int j = 0; j < brickData[i].length && !drillFound; j++) {
-                    if (brickData[i][j] == 11 && i < rectangles.length && j < rectangles[i].length && rectangles[i][j] != null) {
+                    if (brickData[i][j] == com.comp2042.model.SimpleBoard.DRILL_ID && i < rectangles.length && j < rectangles[i].length && rectangles[i][j] != null) {
                         drillFound = true;
-                        drillRect = rectangles[i][j];
                         // Calculate drill screen position for particles
                         if (coordinatesCached) {
                             drillScreenX = cachedBoardOffsetX + (brick.getxPosition() * cachedCellWidth) + (j * cachedCellWidth) + (BRICK_SIZE / 2.0);
@@ -1298,7 +1286,7 @@ public class GuiController implements Initializable {
                             
                             if (val != 0) {
                                 // Check if this is a drill (ID 11) and use texture
-                                if (val == 11 && drillTexture != null) {
+                                if (val == com.comp2042.model.SimpleBoard.DRILL_ID && drillTexture != null) {
                                     // Scale image to match brick size (20x20)
                                     rectangles[i][j].setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
                                     
@@ -1642,7 +1630,7 @@ public class GuiController implements Initializable {
                     // Block was there before but is now gone - it was destroyed!
                     if (previousBoardMatrix[i][j] != 0 && board[i][j] == 0) {
                         // Animate block destruction with debris (only if not too many animations running)
-                        if (drillParticles.size() < 30) { // Reduced limit for better performance
+                        if (drillParticles.size() < 15) { // Further reduced limit for better performance
                             animateBlockDestruction(i, j, previousBoardMatrix[i][j]);
                         }
                     }
@@ -1666,28 +1654,35 @@ public class GuiController implements Initializable {
         }
         
         // Only update visible rows (2 to 24, skipping top 2 hidden rows)
-        // This is already optimized - only called when board state changes, not every frame
+        // Optimized: Reset animation properties and update colors efficiently
         for (int i = 2; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
                 Rectangle rectangle = displayMatrix[i][j];
-                // Reset visual properties modified by animations
-                rectangle.setOpacity(1.0);
-                rectangle.setTranslateY(0);
-                // Set the color
+                if (rectangle == null) continue;
+                
+                // Reset visual properties modified by animations (always needed)
+                if (rectangle.getOpacity() != 1.0) {
+                    rectangle.setOpacity(1.0);
+                }
+                if (rectangle.getTranslateY() != 0) {
+                    rectangle.setTranslateY(0);
+                }
+                
+                // Update color (setRectangleData is efficient - only updates if needed)
                 setRectangleData(board[i][j], rectangle);
             }
         }
     }
 
     private void setRectangleData(int color, Rectangle rectangle) {
-        // Check if this is bedrock (ID 9) - special handling
-        if (color == 9) {
+        // Check if this is bedrock - special handling (use SimpleBoard.BEDROCK_ID constant)
+        if (color == com.comp2042.model.SimpleBoard.BEDROCK_ID) {
             rectangle.setFill(Color.web("#2F2F2F")); // Dark gray matching new palette
             rectangle.setStroke(Color.web("#1A1A1A")); // Darker border
             rectangle.setStrokeWidth(2.0);
             rectangle.setStrokeType(StrokeType.INSIDE);
-        } else if (color == 11 && drillTexture != null) {
-            // Check if this is a drill (ID 11) and use texture
+        } else if (color == com.comp2042.model.SimpleBoard.DRILL_ID && drillTexture != null) {
+            // Check if this is a drill and use texture
             // Scale image to match brick size (20x20)
             rectangle.setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
             rectangle.setStroke(null); // No stroke for drill
@@ -1760,7 +1755,7 @@ public class GuiController implements Initializable {
                                 int val = nextBrickData[row][col];
                                 if (val > 0) {
                                     // Check if this is a drill (ID 11) and use texture
-                                    if (val == 11 && drillTexture != null) {
+                                    if (val == com.comp2042.model.SimpleBoard.DRILL_ID && drillTexture != null) {
                                         // Scale image to match brick size (20x20)
                                         grid[row][col].setFill(new ImagePattern(drillTexture, 0, 0, BRICK_SIZE, BRICK_SIZE, false));
                                     } else {
@@ -2787,13 +2782,11 @@ public class GuiController implements Initializable {
     private void startDrillEffects() {
         // Start particle update timer if not already running
         if (drillParticleTimer == null) {
-            drillParticleTimer = new AnimationTimer() {
-                @Override
-                public void handle(long now) {
-                    updateDrillParticles();
-                }
-            };
-            drillParticleTimer.start();
+            // Use Timeline instead of AnimationTimer for better performance
+            // Update particles every 50ms instead of every frame (60fps = 16ms)
+            drillParticleTimer = new Timeline(new KeyFrame(Duration.millis(50), e -> updateDrillParticles()));
+            drillParticleTimer.setCycleCount(Timeline.INDEFINITE);
+            drillParticleTimer.play();
         }
     }
     
@@ -2851,7 +2844,7 @@ public class GuiController implements Initializable {
         Color debrisColor = blockPaint instanceof Color ? (Color) blockPaint : Color.GREY;
         
         // Reduced particle count for better performance
-        int particleCount = 6 + (int)(Math.random() * 3); // 6-8 particles instead of 12-16
+        int particleCount = 4 + (int)(Math.random() * 2); // 4-5 particles (further reduced)
         
         // Use gameBoard as the container (it's visible and properly positioned)
         for (int i = 0; i < particleCount; i++) {
@@ -2955,8 +2948,8 @@ public class GuiController implements Initializable {
      * @param y Screen Y coordinate of the drill center
      */
     private void spawnDrillSparks(double x, double y) {
-        // Spawn 2-3 small sparks per call (more visible)
-        int particleCount = 2 + (int)(Math.random() * 2); // 2 or 3 particles
+        // Spawn fewer sparks for better performance
+        int particleCount = 1 + (int)(Math.random() * 2); // 1 or 2 particles (reduced from 2-3)
         
         javafx.scene.Parent root = gamePanel != null && gamePanel.getScene() != null ? 
             gamePanel.getScene().getRoot() : null;
@@ -3027,9 +3020,10 @@ public class GuiController implements Initializable {
             fade.play();
         }
         
-        // CONTINUOUS SCREEN SHAKE: Subtle vibration while drilling
-        if (gameBoard != null && Math.random() < 0.6) { // 60% chance per frame
-            double shakeX = (Math.random() - 0.5) * 2; // -1 to +1 (subtle continuous shake)
+        // CONTINUOUS SCREEN SHAKE: Subtle vibration while drilling (reduced frequency)
+        // Only shake occasionally to reduce performance impact
+        if (gameBoard != null && Math.random() < 0.2) { // 20% chance per call (reduced from 60%)
+            double shakeX = (Math.random() - 0.5) * 1.5; // Reduced shake intensity
             gameBoard.setTranslateX(shakeX);
         }
     }

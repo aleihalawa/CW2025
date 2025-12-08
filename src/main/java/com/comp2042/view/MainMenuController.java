@@ -116,7 +116,6 @@ public class MainMenuController implements Initializable {
                 if (selectedMode != null) {
                     // All game modes are now fully implemented
                     GameSettings.setSelectedGameMode(selectedMode);
-                    System.out.println("Game mode selected: " + selectedMode + " - Ready to play!");
                     // Update high score display for the selected game mode
                     loadHighScore();
                 }
@@ -179,7 +178,6 @@ public class MainMenuController implements Initializable {
             }
             
             String videoPath = videoUrl.toExternalForm();
-            System.out.println("Loading video from: " + videoPath + " (Attempt " + (retryAttempts + 1) + ")");
             
             Media media = new Media(videoPath);
             
@@ -220,7 +218,6 @@ public class MainMenuController implements Initializable {
             
             // Configure when media is ready
             mediaPlayer.setOnReady(() -> {
-                System.out.println("Video media is ready");
                 if (backgroundVideo != null) {
                     backgroundVideo.setPreserveRatio(true);
                     if (rootPane != null) {
@@ -245,7 +242,6 @@ public class MainMenuController implements Initializable {
             
             // Monitor status - only log, don't retry on status changes
             mediaPlayer.statusProperty().addListener((obs, oldStatus, newStatus) -> {
-                System.out.println("MediaPlayer status: " + oldStatus + " -> " + newStatus);
                 // Only retry if we get HALTED with an actual error
                 if (newStatus == javafx.scene.media.MediaPlayer.Status.HALTED && 
                     mediaPlayer.getError() != null) {
@@ -259,7 +255,6 @@ public class MainMenuController implements Initializable {
                 try {
                     if (mediaPlayer != null) {
                         mediaPlayer.play();
-                        System.out.println("Video playback started");
                     }
                 } catch (Exception e) {
                     System.err.println("Error starting video playback: " + e.getMessage());
@@ -277,7 +272,6 @@ public class MainMenuController implements Initializable {
     private void retryVideoLoad() {
         if (retryAttempts < MAX_RETRY_ATTEMPTS) {
             retryAttempts++;
-            System.out.println("Retrying video load in 500ms... (Attempt " + retryAttempts + "/" + MAX_RETRY_ATTEMPTS + ")");
             
             // Dispose current player
             disposeMediaPlayer();

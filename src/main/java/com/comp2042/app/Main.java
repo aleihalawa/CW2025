@@ -19,7 +19,6 @@ public class Main extends Application {
             URL fontUrl = getClass().getClassLoader().getResource("public-pixel-font/PublicPixel-rv0pA.ttf");
             if (fontUrl != null) {
                 Font.loadFont(fontUrl.toExternalForm(), 12);
-                System.out.println("Custom font loaded successfully");
             } else {
                 System.err.println("Could not find PublicPixel-rv0pA.ttf font file");
             }

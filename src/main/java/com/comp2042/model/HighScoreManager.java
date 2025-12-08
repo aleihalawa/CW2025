@@ -136,13 +136,15 @@ public class HighScoreManager {
     }
     
     /**
-     * Resets the high score/leaderboard.
-     * This method resets the CLASSIC mode leaderboard and also maintains
-     * backward compatibility with the old highscore.dat file.
+     * Resets all high score/leaderboards for all game modes.
+     * This method resets CLASSIC, MIRROR, and POWERUPS mode leaderboards.
+     * Also maintains backward compatibility with the old highscore.dat file.
      */
     public static void resetHighScore() {
-        // Reset the CLASSIC leaderboard (main leaderboard)
+        // Reset all game mode leaderboards
         resetLeaderboard(GameMode.CLASSIC);
+        resetLeaderboard(GameMode.MIRROR);
+        resetLeaderboard(GameMode.POWERUPS);
         
         // Also reset the old highscore.dat file for backward compatibility
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(HIGHSCORE_FILE))) {

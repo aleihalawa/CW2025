@@ -29,6 +29,12 @@ public class LeaderboardPanel extends Pane {
     private Rectangle dimOverlay;
     private VBox contentPane;
     private VBox scoresList;
+    private Label titleLabel;
+    private GameMode currentMode = GameMode.CLASSIC;
+    private Button classicButton;
+    private Button mirrorButton;
+    private Button powerupsButton;
+    private HBox modeButtons;
     
     public LeaderboardPanel() {
         setStyle("-fx-background-color: transparent;");
@@ -49,9 +55,22 @@ public class LeaderboardPanel extends Pane {
         contentPane.setLayoutY((600 - 500) / 2.0);
         contentPane.setStyle("-fx-background-color: rgba(0, 0, 0, 0.85); -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 25;");
         
-        // Title - cleaner without emojis
-        Label titleLabel = new Label("LEADERBOARD");
+        // Title
+        titleLabel = new Label("LEADERBOARD");
         titleLabel.setStyle("-fx-text-fill: #FFD700; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', 'Arial', sans-serif; -fx-font-size: 22px; -fx-font-weight: bold; -fx-letter-spacing: 1px; -fx-padding: 0 0 10 0;");
+        
+        // Game mode selection buttons
+        modeButtons = new HBox(10);
+        modeButtons.setAlignment(javafx.geometry.Pos.CENTER);
+        
+        classicButton = createModeButton("CLASSIC", GameMode.CLASSIC);
+        mirrorButton = createModeButton("MIRROR", GameMode.MIRROR);
+        powerupsButton = createModeButton("ARCADE", GameMode.POWERUPS);
+        
+        // Set CLASSIC as initially selected
+        updateButtonStyles(GameMode.CLASSIC);
+        
+        modeButtons.getChildren().addAll(classicButton, mirrorButton, powerupsButton);
         
         // Scores list container - more compact
         scoresList = new VBox(8);
@@ -64,10 +83,50 @@ public class LeaderboardPanel extends Pane {
         closeButton = new Button("CLOSE");
         closeButton.getStyleClass().add("pause-menu-button");
         
-        contentPane.getChildren().addAll(titleLabel, scoresList, closeButton);
+        contentPane.getChildren().addAll(titleLabel, modeButtons, scoresList, closeButton);
         getChildren().add(contentPane);
         
         setVisible(false);
+    }
+    
+    /**
+     * Creates a mode selection button.
+     */
+    private Button createModeButton(String text, GameMode mode) {
+        Button button = new Button(text);
+        button.setStyle("-fx-background-color: rgba(0, 0, 0, 0.7); -fx-text-fill: #ffffff; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', 'Arial', sans-serif; -fx-font-size: 12px; -fx-font-weight: bold; -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-padding: 8px 16px; -fx-cursor: hand;");
+        button.setOnAction(e -> switchMode(mode));
+        return button;
+    }
+    
+    /**
+     * Updates button styles to show which mode is selected.
+     */
+    private void updateButtonStyles(GameMode selectedMode) {
+        // Reset all buttons to default style
+        String defaultStyle = "-fx-background-color: rgba(0, 0, 0, 0.7); -fx-text-fill: #ffffff; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', 'Arial', sans-serif; -fx-font-size: 12px; -fx-font-weight: bold; -fx-border-color: #00ffff; -fx-border-width: 2px; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-padding: 8px 16px; -fx-cursor: hand;";
+        String selectedStyle = "-fx-background-color: rgba(0, 255, 255, 0.3); -fx-text-fill: #00ffff; -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', 'Arial', sans-serif; -fx-font-size: 12px; -fx-font-weight: bold; -fx-border-color: #00ffff; -fx-border-width: 3px; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-padding: 8px 16px; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, #00ffff, 8, 0.5, 0, 0);";
+        
+        classicButton.setStyle(selectedMode == GameMode.CLASSIC ? selectedStyle : defaultStyle);
+        mirrorButton.setStyle(selectedMode == GameMode.MIRROR ? selectedStyle : defaultStyle);
+        powerupsButton.setStyle(selectedMode == GameMode.POWERUPS ? selectedStyle : defaultStyle);
+    }
+    
+    /**
+     * Switches to a different game mode and reloads the leaderboard.
+     */
+    private void switchMode(GameMode mode) {
+        currentMode = mode;
+        updateButtonStyles(mode);
+        updateTitle();
+        loadLeaderboard();
+    }
+    
+    /**
+     * Updates the title (kept for consistency, but title is now static).
+     */
+    private void updateTitle() {
+        titleLabel.setText("LEADERBOARD");
     }
     
     public void setOnClose(EventHandler<ActionEvent> handler) {
@@ -79,7 +138,7 @@ public class LeaderboardPanel extends Pane {
     public void loadLeaderboard() {
         scoresList.getChildren().clear();
         
-        List<ScoreEntry> topScores = HighScoreManager.loadLeaderboard(GameMode.CLASSIC);
+        List<ScoreEntry> topScores = HighScoreManager.loadLeaderboard(currentMode);
         
         if (topScores.isEmpty()) {
             Label emptyLabel = new Label("No scores yet!");
@@ -118,6 +177,11 @@ public class LeaderboardPanel extends Pane {
     }
     
     public void showWithAnimation() {
+        // Reset to CLASSIC mode when showing
+        currentMode = GameMode.CLASSIC;
+        updateButtonStyles(currentMode);
+        updateTitle();
+        
         // Load leaderboard data
         loadLeaderboard();
         

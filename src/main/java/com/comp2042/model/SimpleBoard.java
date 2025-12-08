@@ -370,19 +370,25 @@ public class SimpleBoard implements Board {
             }
         }
         
-        // Use standard line clearing service (standard Tetris behavior - immediate gravity)
+        // Use standard line clearing service (standard Tetris behavior - no gravity, just remove full lines)
         ClearRow clearRow = lineClearService.clearFullLines(matrixCopy);
         
-        // Apply the cleared matrix, but preserve bedrock blocks
+        // Apply the cleared matrix, but preserve bedrock blocks exactly as they were
         int[][] newMatrix = clearRow.getNewMatrix();
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                // If the original had bedrock, keep it
+                // If the original had bedrock, keep it exactly as is
                 if (currentGameMatrix[i][j] == BEDROCK_ID) {
                     // Keep bedrock - don't overwrite
                     continue;
                 }
-                // Otherwise, apply the cleared matrix (standard Tetris gravity)
+                // Otherwise, apply the cleared matrix (standard Tetris - no gravity, blocks stay in place)
+                // But check if newMatrix has bedrock in this position (shouldn't happen, but be safe)
+                if (newMatrix[i][j] == BEDROCK_ID) {
+                    // This shouldn't happen since we marked bedrock rows as non-full
+                    // But if it does, preserve the original bedrock
+                    continue;
+                }
                 currentGameMatrix[i][j] = newMatrix[i][j];
             }
         }

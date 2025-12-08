@@ -490,8 +490,14 @@ public class GameController implements InputEventListener {
      * Resumes the corruption loop timeline.
      */
     public void resumeCorruptionLoop() {
-        if (corruptionLoop != null && corruptionLoop.getStatus() == Animation.Status.PAUSED) {
-            corruptionLoop.play();
+        if (corruptionLoop != null) {
+            // Resume if paused, or restart if stopped
+            if (corruptionLoop.getStatus() == Animation.Status.PAUSED) {
+                corruptionLoop.play();
+            } else if (corruptionLoop.getStatus() == Animation.Status.STOPPED) {
+                // If it was stopped, restart it
+                corruptionLoop.play();
+            }
         }
     }
     
@@ -847,10 +853,15 @@ public class GameController implements InputEventListener {
         // Pause the automatic falling timeline
         viewGuiController.pauseTimeline();
         
+        // Pause the corruption loop during freeze
+        pauseCorruptionLoop();
+        
         // Create timer to resume timeline and disable effects after 8 seconds
         Timeline freezeTimer = new Timeline(new KeyFrame(Duration.seconds(8), e -> {
             viewGuiController.setFreezeEffect(false);
             viewGuiController.resumeTimeline();
+            // Resume the corruption loop when freeze ends
+            resumeCorruptionLoop();
         }));
         freezeTimer.setCycleCount(1);
         freezeTimer.play();

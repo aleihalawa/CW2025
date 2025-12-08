@@ -1980,6 +1980,21 @@ public class GuiController implements Initializable {
             }
         }
         
+        // Get high score for current game mode
+        int highScore = 0;
+        try {
+            com.comp2042.model.GameMode currentMode = com.comp2042.model.GameSettings.getSelectedGameMode();
+            java.util.List<com.comp2042.model.ScoreEntry> topScores = com.comp2042.model.HighScoreManager.loadLeaderboard(currentMode);
+            if (!topScores.isEmpty()) {
+                highScore = topScores.get(0).getScore();
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading high score: " + e.getMessage());
+        }
+        
+        // Set scores on game over panel
+        gameOverPanel.setScores(finalScore, highScore);
+        
         // Setup button handlers
         gameOverPanel.setOnRestart(e -> {
             newGame(e);

@@ -155,9 +155,6 @@ public class GuiController implements Initializable {
     private Button settingsPauseButton;
 
     @FXML
-    private Button howToPlayPauseButton;
-
-    @FXML
     private Button quitPauseButton;
 
     private Rectangle[][] displayMatrix;
@@ -2192,10 +2189,6 @@ public class GuiController implements Initializable {
         }
     }
 
-    @FXML
-    private void onPauseHowToPlay(ActionEvent event) {
-        System.out.println("How to Play feature coming soon");
-    }
 
     @FXML
     private void onPauseQuit(ActionEvent event) {

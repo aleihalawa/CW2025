@@ -94,7 +94,6 @@
         <VBox fx:id="pauseMenuButtons" spacing="30" alignment="CENTER">
             <Button fx:id="resumeButton" text="RESUME" onAction="#onResume" styleClass="pause-menu-button"/>
             <Button fx:id="settingsPauseButton" text="SETTINGS" onAction="#onPauseSettings" styleClass="pause-menu-button"/>
-            <Button fx:id="howToPlayPauseButton" text="HOW TO PLAY" onAction="#onPauseHowToPlay" styleClass="pause-menu-button"/>
             <Button fx:id="quitPauseButton" text="EXIT TO MAIN MENU" onAction="#onPauseQuit" styleClass="pause-menu-button"/>
         </VBox>
     </Group>

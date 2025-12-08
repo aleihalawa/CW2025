@@ -105,3 +105,37 @@
     -fx-border-radius: 5px;
     -fx-background-color: rgba(200, 255, 255, 0.1);
 }
+
+.info-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #ffffff;
+    -fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', 'Arial', sans-serif;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-border-color: #00ffff;
+    -fx-border-width: 2px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 5px 15px;
+    -fx-cursor: hand;
+    -fx-min-width: 80px;
+}
+
+.info-button:hover {
+    -fx-background-color: #00ffff;
+    -fx-text-fill: #000000;
+}
+
+.info-button:pressed {
+    -fx-background-color: rgba(0, 255, 255, 0.7);
+}
+
+.modal-card {
+    -fx-background-color: #1a1a1a;
+    -fx-border-color: #00ffff;
+    -fx-border-width: 2px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 30px;
+    -fx-effect: dropshadow(gaussian, #00ffff, 15, 0.5, 0, 0);
+}

@@ -7,6 +7,7 @@ import javafx.animation.ScaleTransition;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
@@ -32,6 +33,11 @@ public class GameModeSelectionPanel extends Pane {
     private StackPane classicContainer;
     private StackPane mirrorContainer;
     private StackPane powerupsContainer;
+    
+    // Modal overlay for rules
+    private VBox infoModal;
+    private Label modalTitle;
+    private Label modalContent;
     
     private Consumer<GameMode> onModeSelectedHandler;
     
@@ -114,13 +120,67 @@ public class GameModeSelectionPanel extends Pane {
         contentPane.getChildren().addAll(titleLabel, gameModeContainer);
         // Add contentPane and closeButton after background (background is already added first)
         contentContainer.getChildren().addAll(contentPane, closeButton);
-        getChildren().add(contentContainer);
+        
+        // Create modal overlay for rules
+        createInfoModal();
+        
+        getChildren().addAll(contentContainer, infoModal);
         
         setVisible(false);
     }
     
     /**
-     * Creates a clickable image view for a game mode.
+     * Creates the info modal overlay for displaying game mode rules.
+     */
+    private void createInfoModal() {
+        // Create modal overlay (covers entire screen)
+        infoModal = new VBox();
+        infoModal.setAlignment(javafx.geometry.Pos.CENTER);
+        infoModal.setPrefSize(650, 600);
+        infoModal.setStyle("-fx-background-color: rgba(0, 0, 0, 0.8);");
+        infoModal.setVisible(false);
+        
+        // Create content card
+        VBox modalCard = new VBox(20);
+        modalCard.setMaxWidth(500);
+        modalCard.setMaxHeight(400);
+        modalCard.setStyle("-fx-background-color: #1a1a1a; " +
+                          "-fx-border-color: #00ffff; " +
+                          "-fx-border-width: 2px; " +
+                          "-fx-border-radius: 10px; " +
+                          "-fx-background-radius: 10px; " +
+                          "-fx-padding: 30px; " +
+                          "-fx-effect: dropshadow(gaussian, #00ffff, 15, 0.5, 0, 0);");
+        modalCard.setAlignment(javafx.geometry.Pos.CENTER);
+        
+        // Title label
+        modalTitle = new Label();
+        modalTitle.setStyle("-fx-text-fill: #00ffff; " +
+                           "-fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', 'Arial', sans-serif; " +
+                           "-fx-font-size: 24px; " +
+                           "-fx-font-weight: bold; " +
+                           "-fx-alignment: CENTER;");
+        
+        // Content label
+        modalContent = new Label();
+        modalContent.setWrapText(true);
+        modalContent.setStyle("-fx-text-fill: #ffffff; " +
+                            "-fx-font-family: 'Public Pixel', 'Impact', 'Arial Black', 'Arial', sans-serif; " +
+                            "-fx-font-size: 14px; " +
+                            "-fx-alignment: CENTER; " +
+                            "-fx-line-spacing: 5px;");
+        
+        // Close button
+        Button closeModalButton = new Button("CLOSE");
+        closeModalButton.getStyleClass().add("menu-button");
+        closeModalButton.setOnAction(e -> closeModal());
+        
+        modalCard.getChildren().addAll(modalTitle, modalContent, closeModalButton);
+        infoModal.getChildren().add(modalCard);
+    }
+    
+    /**
+     * Creates a clickable image view for a game mode with a RULES button.
      * Optimized for performance with minimal animations.
      */
     private StackPane createGameModeButton(String imagePath, GameMode mode) {
@@ -152,53 +212,133 @@ public class GameModeSelectionPanel extends Pane {
         imageView.setCache(true); // Enable caching
         imageView.setCacheHint(javafx.scene.CacheHint.SPEED); // Optimize for speed
         
-        // Wrap in StackPane
-        StackPane container = new StackPane();
-        container.setPrefSize(imageWidth, imageHeight);
-        container.setMaxSize(imageWidth, imageHeight);
-        container.getChildren().add(imageView);
-        container.setStyle("-fx-background-color: transparent;");
-        container.setCache(true);
-        container.setCacheHint(javafx.scene.CacheHint.SPEED);
+        // Wrap image in StackPane
+        StackPane imageContainer = new StackPane();
+        imageContainer.setPrefSize(imageWidth, imageHeight);
+        imageContainer.setMaxSize(imageWidth, imageHeight);
+        imageContainer.getChildren().add(imageView);
+        imageContainer.setStyle("-fx-background-color: transparent;");
+        imageContainer.setCache(true);
+        imageContainer.setCacheHint(javafx.scene.CacheHint.SPEED);
         
         // Make it clickable
-        container.setPickOnBounds(true);
-        container.setCursor(javafx.scene.Cursor.HAND);
+        imageContainer.setPickOnBounds(true);
+        imageContainer.setCursor(javafx.scene.Cursor.HAND);
         
         // Use direct property changes instead of animations for better performance
         // Only use minimal animations for smooth feel
-        container.setOnMouseEntered(e -> {
-            container.setScaleX(1.08);
-            container.setScaleY(1.08);
+        imageContainer.setOnMouseEntered(e -> {
+            imageContainer.setScaleX(1.08);
+            imageContainer.setScaleY(1.08);
         });
         
-        container.setOnMouseExited(e -> {
-            container.setScaleX(1.0);
-            container.setScaleY(1.0);
+        imageContainer.setOnMouseExited(e -> {
+            imageContainer.setScaleX(1.0);
+            imageContainer.setScaleY(1.0);
         });
         
         // Simple click effect - no animation needed
-        container.setOnMousePressed(e -> {
-            container.setScaleX(0.96);
-            container.setScaleY(0.96);
+        imageContainer.setOnMousePressed(e -> {
+            imageContainer.setScaleX(0.96);
+            imageContainer.setScaleY(0.96);
         });
         
-        container.setOnMouseReleased(e -> {
-            if (container.isHover()) {
-                container.setScaleX(1.08);
-                container.setScaleY(1.08);
+        imageContainer.setOnMouseReleased(e -> {
+            if (imageContainer.isHover()) {
+                imageContainer.setScaleX(1.08);
+                imageContainer.setScaleY(1.08);
             } else {
-                container.setScaleX(1.0);
-                container.setScaleY(1.0);
+                imageContainer.setScaleX(1.0);
+                imageContainer.setScaleY(1.0);
             }
         });
         
         // Click handler - select game mode
-        container.setOnMouseClicked(e -> {
+        imageContainer.setOnMouseClicked(e -> {
             selectGameMode(mode);
         });
         
+        // Create info image button
+        ImageView infoImageView = new ImageView();
+        URL infoImageUrl = getClass().getClassLoader().getResource("info logo.png");
+        if (infoImageUrl != null) {
+            Image infoImage = new Image(infoImageUrl.toExternalForm(), 30, 30, true, true);
+            infoImageView.setImage(infoImage);
+        }
+        infoImageView.setFitWidth(30);
+        infoImageView.setFitHeight(30);
+        infoImageView.setPreserveRatio(true);
+        infoImageView.setSmooth(true);
+        infoImageView.setCache(true);
+        infoImageView.setCacheHint(javafx.scene.CacheHint.SPEED);
+        infoImageView.setCursor(javafx.scene.Cursor.HAND);
+        infoImageView.setOpacity(0.8);
+        
+        // Make info image clickable
+        infoImageView.setOnMouseClicked(e -> {
+            e.consume(); // Prevent event from bubbling to image container
+            showRulesForMode(mode);
+        });
+        
+        // Create VBox to contain image and info button
+        VBox modeCard = new VBox(10);
+        modeCard.setAlignment(javafx.geometry.Pos.CENTER);
+        modeCard.getChildren().addAll(imageContainer, infoImageView);
+        
+        // Wrap in StackPane for consistency with original structure
+        StackPane container = new StackPane();
+        container.getChildren().add(modeCard);
+        container.setStyle("-fx-background-color: transparent;");
+        
         return container;
+    }
+    
+    /**
+     * Shows the rules modal for the specified game mode.
+     */
+    private void showRulesForMode(GameMode mode) {
+        String title;
+        String content;
+        
+        switch (mode) {
+            case CLASSIC:
+                title = "CLASSIC MODE";
+                content = "The standard Tetris experience.\n\nControls:\nArrows to Move/Rotate.\n\nGoal:\nClear lines to score points. Speed increases every level.";
+                break;
+            case MIRROR:
+                title = "MIRROR MODE";
+                content = "A twisted challenge for veterans.\n\nRules:\nALL controls are reversed!\nLeft is Right.\nRight is Left.\n\nGoal:\nSurvive as long as your brain can handle the confusion.";
+                break;
+            case POWERUPS:
+                title = "ARCADE POWER-UP";
+                content = "Chaos and destruction.\n\nRules:\n1. Hyper Speed (1.5x).\n2. Bedrock Corruption: Floor rises every 15s!\n\nPower-Ups:\n[1] Freeze: Stop time.\n[2] Drill: Smash columns.\n[3] Bomb: Area explosion.\n\nEarn items every 100 points!";
+                break;
+            default:
+                return;
+        }
+        
+        showModal(title, content);
+    }
+    
+    /**
+     * Shows the modal with the specified title and content.
+     */
+    private void showModal(String title, String content) {
+        if (modalTitle != null && modalContent != null && infoModal != null) {
+            modalTitle.setText(title);
+            modalContent.setText(content);
+            infoModal.setVisible(true);
+            infoModal.toFront();
+        }
+    }
+    
+    /**
+     * Closes the rules modal.
+     */
+    private void closeModal() {
+        if (infoModal != null) {
+            infoModal.setVisible(false);
+        }
     }
     
     /**

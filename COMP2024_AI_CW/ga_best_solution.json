@@ -1,0 +1,31 @@
+{
+  "features_used": 9,
+  "feature_names": [
+    "Destination Port",
+    "Flow Duration",
+    "Total Backward Packets",
+    "Fwd IAT Std",
+    "Min Packet Length",
+    "Packet Length Mean",
+    "URG Flag Count",
+    "Subflow Fwd Packets",
+    "Subflow Fwd Bytes"
+  ],
+  "hyperparams": {
+    "n_estimators": 212,
+    "max_depth": 26,
+    "min_samples_split": 5,
+    "min_samples_leaf": 3,
+    "max_features": "sqrt"
+  },
+  "accuracy": 0.9966583683226198,
+  "precision": 0.9914609113834966,
+  "recall": 0.9927068163667966,
+  "f1_score": 0.9920834727088138,
+  "fpr": 0.0022853770401228077,
+  "TP": 84527,
+  "TN": 317819,
+  "FP": 728,
+  "FN": 621,
+  "runtime_seconds": 3193.09
+}

@@ -1,3 +1,7 @@
+# Large preprocessed dataset files (regenerate via data_prep.py)
+COMP2024_AI_CW/X_train_final.csv
+COMP2024_AI_CW/X_test_final.csv
+
 # XAMPP / local environment
 .env
 *.log

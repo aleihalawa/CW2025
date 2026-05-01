@@ -1,79 +1,58 @@
-# ABB Robotics CRM System
+# Alei Halawa — Project Portfolio
 
-A web-based Customer Relationship Management (CRM) system built as a university database coursework project. Designed around a fictional ABB Robotics sales team, it demonstrates full-stack PHP/MySQL development with role-based access control.
-
-## Features
-
-- **Authentication** — session-based login with role-based access (Admin / Sales Rep)
-- **Customer Management** — create, view, edit, and delete customer records
-- **Lead Tracking** — manage sales leads through a status pipeline: New → Contacted → In Progress → Closed
-- **Interaction History** — log customer interactions by type (Call, Email, Meeting, Other)
-- **CSV Export** — Admin-only export of customer and lead data
-- **Responsive UI** — clean dashboard with card-based navigation
-
-## Tech Stack
-
-| Layer    | Technology          |
-|----------|---------------------|
-| Backend  | PHP (procedural)    |
-| Database | MySQL               |
-| Frontend | HTML, CSS           |
-| Server   | Apache via XAMPP    |
-
-## Database Schema
-
-Four relational tables with foreign key constraints:
-
-- `users` — stores credentials and roles
-- `customers` — customer records linked to the user who created them
-- `leads` — sales pipeline with follow-up dates and notes
-- `interaction_history` — interaction log tied to customers
-
-See [`COMP1044_CW_G41/COMP1044_Database.sql`](COMP1044_CW_G41/COMP1044_Database.sql) for the full schema and [`COMP1044_CW_G41/COMP1044_ERD.pdf`](COMP1044_CW_G41/COMP1044_ERD.pdf) for the Entity Relationship Diagram.
-
-## Running Locally
-
-**Prerequisites:** [XAMPP](https://www.apachefriends.org/) (Apache + MySQL)
-
-1. Clone the repo into your XAMPP `htdocs` folder:
-   ```bash
-   git clone https://github.com/aleihalawa/CW2025.git
-   ```
-
-2. Start **Apache** and **MySQL** in the XAMPP Control Panel.
-
-3. Open [phpMyAdmin](http://localhost/phpmyadmin), create a database named `crm_system`, and import:
-   ```
-   COMP1044_CW_G41/COMP1044_Database.sql
-   ```
-
-4. Navigate to the app in your browser:
-   ```
-   http://localhost/CW2025/COMP1044_CW_G41/COMP1044_SRC/COMP1044_SRC/login.php
-   ```
-
-5. Log in with the demo credentials:
-
-   | Role     | Username    | Password  |
-   |----------|-------------|-----------|
-   | Admin    | adminuser   | admin123  |
-   | Sales Rep| salesrep1   | rep123    |
-
-## Project Files
-
-```
-COMP1044_CW_G41/
-├── COMP1044_Database.sql       # Full DB schema + seed data
-├── COMP1044_ERD.pdf            # Entity Relationship Diagram
-├── COMP1044_WBS.pdf            # Work Breakdown Structure
-└── COMP1044_SRC/
-    └── login.php               # Entry point
-    └── dashboard.php           # Main hub
-    └── view/add/edit/delete_*.php  # CRUD pages per module
-    └── export_*.php            # Admin CSV exports
-    └── db_connect.php          # DB connection config
-```
+BSc Computer Science with Artificial Intelligence — University of Nottingham Malaysia  
+[github.com/aleihalawa](https://github.com/aleihalawa) · aleihalawa@gmail.com
 
 ---
 
-*COMP1044 Database & Interfaces Coursework — Group 41*
+## Projects
+
+### Real-Time Crowd Surveillance System
+**COMP2019: Software Engineering Group Project · Group of 6 · 2025**
+
+Six-module AI pipeline for live crowd analysis via a React dashboard backed by a Flask/YOLO inference server. I personally built the **Directional Flow Analysis** module — ByteTrack person tracking, 30-frame centroid history for motion vectors, and trajectory visualisation.
+
+**Tech:** Python · YOLOv8 · ByteTrack · OpenCV · React · Vite · Flask  
+**Folder:** [`COMP2019_Surveillance/`](COMP2019_Surveillance/)
+
+---
+
+### IDS Optimisation — Metaheuristic AI
+**COMP2024: Intelligent Systems · Group Leader · 2025**
+
+Intrusion detection system built on the CICIDS2017 dataset. Trained a Random Forest baseline then applied three metaheuristic optimisers — Genetic Algorithm, Particle Swarm Optimisation, and Simulated Annealing — for joint feature selection and hyperparameter tuning. Benchmarked all three against detection accuracy and false positive rate.
+
+**Tech:** Python · Scikit-learn · NumPy · Pandas · SMOTE  
+**Folder:** [`COMP2024_AI_CW/`](COMP2024_AI_CW/)
+
+---
+
+### Java Tetris Engine
+**COMP2042: Software Maintenance · Individual · High Distinction · 2024**
+
+Full Tetris engine with three game modes (Classic, Mirror, Power-Ups), a power-up system (Freeze / Bomb / Drill), a rising bedrock corruption mechanic, per-mode persistent leaderboards, and a cyberpunk visual theme. Includes full JUnit test suite and JavaDoc.
+
+**Tech:** Java · JavaFX · Java Swing · Maven · JUnit  
+**Folder:** [`COMP2042_Tetris/`](COMP2042_Tetris/)
+
+---
+
+### CRM System — PHP & MySQL Backend
+**COMP1044: Database and Interfaces · Group Project · 2024**
+
+Customer Relationship Management platform for a fictional ABB Robotics sales team. Full CRUD backend with session-based authentication, role-based access (Admin / Sales Rep), lead pipeline tracking, interaction history logging, and CSV export. ERD designed and schema normalised to 3NF.
+
+**Tech:** PHP · MySQL · SQL · HTML · CSS · Apache (XAMPP)  
+**Folder:** [`COMP1044_CW_G41/`](COMP1044_CW_G41/)
+
+---
+
+## Skills Demonstrated
+
+| Area | Technologies |
+|------|-------------|
+| AI / ML | YOLOv8, Scikit-learn, metaheuristic optimisation, computer vision |
+| Backend | PHP, Python (Flask), MySQL, REST APIs |
+| Frontend | React, Vite, HTML/CSS |
+| Systems | Java, JavaFX, Maven, OOP, JUnit |
+| Tools | Git, OpenCV, ByteTrack, XAMPP |

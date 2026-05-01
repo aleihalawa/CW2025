@@ -6,6 +6,9 @@ COMP2024_AI_CW/X_test_final.csv
 .env
 *.log
 
+# Maven build output
+COMP2042_Tetris/**/target/
+
 # OS files
 .DS_Store
 Thumbs.db

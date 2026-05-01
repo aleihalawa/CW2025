@@ -1,0 +1,33 @@
+/* Retro Synthwave Main Menu Styles */
+
+.menu-button {
+    -fx-background-color: rgba(0, 0, 0, 0.7);
+    -fx-text-fill: #00ffff;
+    -fx-font-family: "Public Pixel", "Impact", "Arial Black", "Arial", sans-serif;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-border-color: #00ffff;
+    -fx-border-width: 2px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-min-width: 160px;
+    -fx-max-width: 160px;
+    -fx-min-height: 35px;
+    -fx-padding: 6px 12px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, #00ffff, 10, 0.5, 0, 0);
+    -fx-letter-spacing: 1px;
+}
+
+.menu-button:pressed {
+    -fx-background-color: rgba(0, 255, 255, 0.5);
+}
+
+.high-score-label {
+    -fx-text-fill: rgba(255, 255, 255, 0.7);
+    -fx-font-family: "Public Pixel", "Impact", "Arial Black", "Arial", sans-serif;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 0.5px;
+}
+

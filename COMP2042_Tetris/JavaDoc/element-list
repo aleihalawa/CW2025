@@ -1,0 +1,7 @@
+com.comp2042.app
+com.comp2042.controller
+com.comp2042.events
+com.comp2042.model
+com.comp2042.model.logic
+com.comp2042.model.logic.bricks
+com.comp2042.view

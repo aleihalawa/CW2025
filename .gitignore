@@ -6,6 +6,10 @@ COMP2024_AI_CW/X_test_final.csv
 .env
 *.log
 
+# Node / Vite
+COMP2019_Surveillance/node_modules/
+COMP2019_Surveillance/dist/
+
 # Maven build output
 COMP2042_Tetris/**/target/
 

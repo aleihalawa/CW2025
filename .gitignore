@@ -1,0 +1,11 @@
+# XAMPP / local environment
+.env
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
